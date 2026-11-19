@@ -120,7 +120,7 @@
     },
     { no: '10', file: '10. 교육의 중립성 준수 서약서(강사명).hwpx', out: '10. 교육의 중립성 준수 서약서({name}).hwpx', school: true, roles: ['주강사', '보조강사'], hwpx: true },
     {
-      no: '11', file: '11. 안전관리 서약서_OOO.hwp', out: '11. 안전관리 서약서_{name}.hwp', school: false, roles: ['주강사'],
+      no: '11', file: '11. 안전관리 서약서_OOO.hwp', out: '11. 안전관리 서약서_{name}.hwp', school: false, roles: ['주강사'], optional: true,
       ops: [
         { i: 8, expect: '(진행 프로그램 전부 작성)', set: function (d) { return d.programs || null; } },
         { i: 22, expect: '', set: function (d) { return d.name; } },
@@ -129,7 +129,7 @@
       ]
     },
     {
-      no: '12', file: '12. 강사 서약서_OOO.hwp', out: '12. 강사 서약서_{name}.hwp', school: false, roles: ['주강사'],
+      no: '12', file: '12. 강사 서약서_OOO.hwp', out: '12. 강사 서약서_{name}.hwp', school: false, roles: ['주강사'], optional: true,
       ops: [
         { i: 24, expect: '강사 성명:', gap: ['강사 성명:', 'name'], sign: { x: 104, y: -4 } }
       ]

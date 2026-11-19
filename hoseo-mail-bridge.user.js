@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         앵커늘봄 강사서류 → 호서대 메일 보내기
 // @namespace    https://hoseoican.github.io/hoseo_docs/
-// @version      0.2.0
+// @version      0.3.0
 // @description  강사서류 작성 프로그램의 「학교 메일로 보내기」를 누르면 호서대 웹메일 쓰기 창에 받는 사람·제목·본문·ZIP 첨부를 채웁니다.
 // @match        https://hoseoican.github.io/hoseo_docs/*
 // @match        https://mail.hoseo.edu/*
@@ -18,7 +18,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  var VERSION = '0.2.0';
+  var VERSION = '0.3.0';
   var MAIL_HOME = 'https://mail.hoseo.edu/mail/allmail';
   var JOB_TTL = 20 * 60 * 1000; // 20분 지난 작업은 버림
 
@@ -122,6 +122,24 @@
     el.dispatchEvent(new Event('input', { bubbles: true }));
     return 'html';
   }
+  // 웹메일 서명에 들어 있는 예전 안내문(맨 위 ~ 「앵커늘봄총괄센터 드림」)을 지운다. 이름표(표)와 서명 표시는 남긴다
+  var OLD_END = '앵커늘봄총괄센터 드림';
+  function stripOldNotice(root) {
+    var d = root.ownerDocument, w = d.createTreeWalker(root, NodeFilter.SHOW_TEXT), t, hit = null;
+    while ((t = w.nextNode())) { if (t.nodeValue.replace(/\s+/g, ' ').indexOf(OLD_END) >= 0) { hit = t; break; } }
+    if (!hit) return false;
+    var n = hit.parentNode;
+    while (n.parentNode && n.parentNode !== root && !n.parentNode.querySelector('table')) n = n.parentNode;
+    var cur = n;
+    while (cur && cur !== root) {
+      var par = cur.parentNode;
+      var kids = Array.prototype.slice.call(par.childNodes), idx = kids.indexOf(cur);
+      for (var i = 0; i < idx; i++) if (kids[i].nodeType !== 8) par.removeChild(kids[i]); // 주석(서명 표시)은 남김
+      if (cur === n) par.removeChild(n);
+      cur = par;
+    }
+    return true;
+  }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
   async function openCompose() {
@@ -151,9 +169,11 @@
     check = check.replace(/\*\*/g, '').trim().slice(0, 12);
     var bodyOk = false;
     if (body) {
-      if (check && txt(body.el).indexOf('앵커늘봄총괄센터 드림') >= 0 && txt(body.el).indexOf(check) >= 0) { bodyOk = true; log('본문', true, '서명에 이미 들어 있어 그대로 둡니다'); }
+      if (check && txt(body.el).indexOf(check) >= 0) { bodyOk = true; log('본문', true, '이미 들어 있습니다'); }
       else {
+        var stripped = stripOldNotice(body.el);
         var how = insertBody(body, html); await sleep(400);
+        if (stripped) log('서명의 예전 안내문', true, '지우고 미리보기 내용으로 바꿨습니다');
         bodyOk = !check || txt(body.el).indexOf(check) >= 0;
         log('본문', bodyOk, bodyOk ? '' : '자동으로 못 넣었습니다');
       }

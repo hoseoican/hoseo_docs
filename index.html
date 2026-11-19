@@ -560,8 +560,9 @@
           </div>
           <h4>보낼 강사 <span class="hint" id="mCount"></span></h4>
           <ul class="mlist" id="mPeople"></ul>
-          <div class="row" style="margin:12px 0 0;gap:8px"><button type="button" class="save" id="btnSchoolZip">이 학교 서류 ZIP 저장</button><button type="button" class="ghost" id="btnMarkSent">보냄으로 표시</button><button type="button" class="ghost sm" id="btnNames2">파일 이름 설정</button>
+          <div class="row" style="margin:12px 0 0;gap:8px"><button type="button" class="save" id="btnBridge" title="Tampermonkey 스크립트로 호서대 웹메일 쓰기 창에 받는 사람·제목·본문·ZIP을 채웁니다">✉ 학교 메일로 보내기</button><button type="button" class="ghost" id="btnSchoolZip">이 학교 서류 ZIP 저장</button><button type="button" class="ghost" id="btnMarkSent">보냄으로 표시</button><button type="button" class="ghost sm" id="btnNames2">파일 이름 설정</button>
             <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">고른 강사마다 폴더를 만들고, <b>이 학교에 낼 서류만</b> 넣습니다(공통 서류 + 이 학교 이름이 들어간 서류 + PDF).<br>빨간 항목이 남은 강사는 처음에 고르지 않습니다. 운영 목록에만 있고 아직 서류 정보가 없는 강사는 목록에만 보입니다.</span></span></div>
+          <div class="row" style="margin:8px 0 0;gap:12px;font-size:12.5px;color:var(--muted,#666)"><label class="row" style="margin:0;gap:4px"><input type="checkbox" id="bridgeAuto"> 채운 뒤 「보내기」까지 자동으로 누르기</label><a href="#" id="bridgeHelp">메일 보내기 설정 방법</a><span id="bridgeState"></span></div>
         </div>
         <div class="card">
           <h3>보내는 사람 <small>메일 서명에 들어갑니다 · 기억합니다</small></h3>
@@ -643,6 +644,18 @@
   <label class="row" style="margin:12px 0 0;font-size:13px"><input type="checkbox" id="sdPeople" checked> 강사 목록의 출강 학교 이름도 함께 바꾸기</label>
   <div class="act"><button type="button" class="ghost" id="sdCancel">취소</button><button type="button" id="sdSave">저장</button></div>
 </div></div>
+<div class="modal" id="bridgeDlg"><div class="box">
+  <h3>학교 메일로 바로 보내기 설정 (처음 한 번)</h3>
+  <p class="note">「✉ 학교 메일로 보내기」를 누르면 호서대 웹메일 쓰기 창이 열리고 받는 사람·제목·본문·ZIP 첨부가 자동으로 채워집니다. Chrome에 아래를 한 번만 설치하면 됩니다.</p>
+  <ol style="line-height:1.9;padding-left:20px;margin:8px 0 12px">
+    <li><a href="https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" rel="noopener"><b>Tampermonkey</b></a>를 Chrome에 추가합니다.</li>
+    <li>Chrome 주소창에 <code>chrome://extensions</code> → Tampermonkey <b>세부정보</b> → <b>「사용자 스크립트 허용」</b>을 켭니다. (메뉴에 없으면 오른쪽 위 <b>개발자 모드</b>를 켭니다)</li>
+    <li><a id="bridgeInstall" href="hoseo-mail-bridge.user.js" target="_blank" rel="noopener"><b>메일 보내기 스크립트 설치</b></a>를 눌러 나오는 화면에서 「설치」를 누릅니다.</li>
+    <li>이 화면을 새로고침합니다. 버튼 옆에 「메일 연결됨」이 보이면 끝입니다.</li>
+  </ol>
+  <p class="note">학교 메일은 같은 Chrome에서 로그인해 두세요. 깃허브 화면(hoseoican.github.io)에서만 동작합니다. 첨부는 웹메일의 용량 제한을 따릅니다.</p>
+  <div class="row" style="justify-content:flex-end;margin:0"><button type="button" class="ghost" id="bridgeClose">닫기</button></div>
+</div></div>
 <div class="modal" id="namesDlg"><div class="box wide">
   <h3>파일 이름 설정</h3>
   <p class="note">모든 강사에 쓰는 기본 이름입니다. 한 강사만 바꾸려면 「확인·내려받기」의 파일 목록에서 이름 옆 ✎를 누르세요. 자리표시자: <b>{성명} {구분} {학교명} {인원} {번호} {서류명}</b> · 파일 이름에 쓸 수 없는 글자(\ / : * ? " &lt; &gt; |)는 _ 로 바뀝니다.</p>
@@ -677,7 +690,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.19-18';
+var APP_VERSION = '2026.11.19-19';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1440,15 +1453,43 @@ function renderMailPreview(){
   $('mTo').textContent=to; $('mSubj').textContent=fillTpl(mailCfg.subject, v); $('mailBody').textContent=fillTpl(mailCfg.body, v);
   $('mCount').textContent=picked.length+'명 선택';
   $('mMailto').href='mailto:'+encodeURIComponent(c.email||'')+'?subject='+encodeURIComponent($('mSubj').textContent)+'&body='+encodeURIComponent($('mailBody').textContent);
-  $('btnSchoolZip').disabled=!picked.length;
+  $('btnSchoolZip').disabled=!picked.length; if($('btnBridge')) $('btnBridge').disabled=!picked.length; bridgeStateText(); if($('bridgeAuto')) $('bridgeAuto').checked=!!mailCfg.autoSend;
 }
+async function schoolZipBlob(picked, warns){
+  var zip=new JSZip();
+  for(const x of picked){ await addPersonFiles(zip, x.person, mailSchool, '', warns); }
+  return zip.generateAsync({type:'blob', compression:'DEFLATE'});
+}
+/* ---------- 학교 메일로 보내기 (Tampermonkey 스크립트와 연결) ---------- */
+function bridgeOn(){ return document.documentElement.dataset.hsMailBridge==='1'; }
+function bridgeStateText(){ var el=$('bridgeState'); if(!el) return; el.innerHTML = bridgeOn() ? '<b style="color:var(--ok)">● 메일 연결됨</b>' : '<span style="color:#999">○ 메일 연결 안 됨</span>'; }
+async function bridgeSend(){
+  var picked=pickedOf(mailSchool);
+  if(!mailSchool){ toast('학교·기관을 먼저 고르세요'); return; }
+  if(!picked.length){ toast('보낼 강사를 먼저 골라 주세요'); return; }
+  var c=contacts[mailSchool]||{};
+  if(!c.email){ toast('담당자 이메일을 넣어 주세요'); $('mMail').focus(); return; }
+  if(!bridgeOn()){ $('bridgeDlg').classList.add('on'); return; }
+  var btn=$('btnBridge'); btn.disabled=true; btn.textContent='ZIP 만드는 중…';
+  try{
+    var warns=[], blob=await schoolZipBlob(picked, warns), buf=await blob.arrayBuffer();
+    window.postMessage({ type:'hs-mail-send', id:String(Date.now()), school:mailSchool, names:picked.map(function(x){ return x.name; }),
+      to:c.email, toName:c.name||'', subject:$('mSubj').textContent, body:$('mailBody').textContent,
+      fileName:schoolZipName(mailSchool, picked.length), data:buf, auto:!!mailCfg.autoSend }, (location.protocol==='file:' || location.origin==='null') ? '*' : location.origin);
+    toast('학교 메일 쓰기 창을 엽니다 ('+Math.round(buf.byteLength/1024/1024*10)/10+'MB)'+(warns.length?' · '+warns.join(', '):''));
+  }catch(e){ console.error(e); toast('만들지 못했습니다: '+(e.message||e)); }
+  finally{ btn.disabled=false; btn.textContent='✉ 학교 메일로 보내기'; }
+}
+window.addEventListener('message', function(e){
+  var d=e.data; if((e.source!==window && e.origin!==location.origin) || !d || typeof d.type!=='string' || d.type.indexOf('hs-mail-')!==0 || d.type==='hs-mail-send') return;
+  if(d.type==='hs-mail-sent' && d.school && d.names){ markSent(d.school, d.names, true); if(typeof renderMail==='function') renderMail(); toast(d.school+' · '+d.names.length+'명 메일을 보내고 보냄 표시했습니다'); }
+  if(d.type==='hs-mail-error') toast('메일 연결 오류: '+(d.msg||''));
+});
 async function makeSchoolZip(){
   var picked=pickedOf(mailSchool); if(!picked.length) return;
   var btn=$('btnSchoolZip'); btn.disabled=true; btn.textContent='만드는 중…';
   try{
-    var zip=new JSZip(), warns=[];
-    for(const x of picked){ await addPersonFiles(zip, x.person, mailSchool, '', warns); }
-    var blob=await zip.generateAsync({type:'blob', compression:'DEFLATE'});
+    var warns=[], blob=await schoolZipBlob(picked, warns);
     await saveBlob(blob, schoolZipName(mailSchool, picked.length), warns);
   }catch(e){ console.error(e); toast('만들지 못했습니다: '+(e.message||e)); }
   finally{ btn.textContent='이 학교 서류 ZIP 저장'; renderMailPreview(); }
@@ -1476,6 +1517,12 @@ function bindOpsMail(){
   $('tBody').addEventListener('input', function(){ mailCfg.body=$('tBody').value; kvPut('mailCfg', mailCfg); renderMailPreview(); });
   $('btnTplReset').onclick=function(){ var sd=mailCfg.sender; mailCfg=JSON.parse(JSON.stringify(DEFAULT_MAIL)); mailCfg.sender=sd||mailCfg.sender; kvPut('mailCfg', mailCfg); renderMail(); };
   $('btnSchoolZip').onclick=makeSchoolZip;
+  $('btnBridge').onclick=bridgeSend;
+  $('bridgeHelp').onclick=function(e){ e.preventDefault(); $('bridgeDlg').classList.add('on'); };
+  $('bridgeClose').onclick=function(){ $('bridgeDlg').classList.remove('on'); };
+  $('bridgeAuto').checked=!!mailCfg.autoSend;
+  $('bridgeAuto').onchange=function(){ mailCfg.autoSend=$('bridgeAuto').checked; kvPut('mailCfg', mailCfg); };
+  bridgeStateText(); setTimeout(bridgeStateText, 1500);
   $('btnMarkSent').onclick=function(){
     var picked=pickedOf(mailSchool); if(!picked.length){ toast('보낸 강사를 먼저 골라 주세요'); return; }
     var allSent=picked.every(function(x){ return sentOf(mailSchool, x.name); });

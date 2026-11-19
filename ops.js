@@ -143,7 +143,8 @@
     classes.forEach(function (c) { if (school && c.school !== school) return; var t = (c.field ? '[' + c.field + '] ' : '') + c.program; if (c.program && seen.indexOf(t) < 0) seen.push(t); });
     return seen.join(', ');
   }
-  function dot(iso) { if (!iso) return ''; var p = iso.split('-'); return p[0] + '.' + p[1] + '.' + p[2]; }
+  // 날짜 표기: 2027. 1. 6.
+  function dot(iso) { if (!iso) return ''; var p = iso.split('-'); return p[0] + '. ' + (+p[1]) + '. ' + (+p[2]) + '.'; }
   function period(classes) {
     var s = classes.map(function (c) { return c.start; }).filter(Boolean).sort()[0] || '', e = classes.map(function (c) { return c.end; }).filter(Boolean).sort().pop() || '';
     return s || e ? dot(s) + ' ~ ' + dot(e) : '';

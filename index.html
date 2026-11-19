@@ -677,7 +677,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.19-16';
+var APP_VERSION = '2026.11.19-17';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1495,6 +1495,8 @@ async function normalizeImg(kind, v){
   try{ var r=await processImage(kind, new Blob([v.data],{type:v.ext==='png'?'image/png':'image/jpeg'})); return { data:new Uint8Array(await r.blob.arrayBuffer()), ext:r.ext, pxW:r.pxW, pxH:r.pxH }; }
   catch(e){ return v; }
 }
+// 이력서 기간·취득일자 날짜 표기 통일(저장된 값까지)
+function normRowDates(p){ var ch=false; ['edu','career','cert'].forEach(function(k){ (p[k]||[]).forEach(function(x){ if(!x) return; ['period','date'].forEach(function(f){ if(x[f]){ var v=Forms.normDates(x[f]); if(v!==x[f]){ x[f]=v; ch=true; } } }); }); }); return ch; }
 function emptyRows(a){ return !(a||[]).some(function(x){ return x && Object.keys(x).some(function(k){ return x[k]; }); }); }
 async function importFiles(list){
   if(importing || !list.length) return;
@@ -1516,7 +1518,7 @@ async function importFiles(list){
       setIf('rrn', r.rrn ? Forms.fmtRrn(r.rrn) : '', '주민번호');
       setIf('phone', r.phone ? Forms.fmtPhone(r.phone) : '', '연락처');
       setIf('address', r.address, '주소'); setIf('email', r.email, '이메일');
-      [['edu','학력'],['career','경력'],['cert','자격']].forEach(function(x){ if(!emptyRows(r[x[0]]) && emptyRows(target[x[0]])){ target[x[0]]=r[x[0]]; got.push(x[1]); } });
+      [['edu','학력'],['career','경력'],['cert','자격']].forEach(function(x){ if(!emptyRows(r[x[0]]) && emptyRows(target[x[0]])){ target[x[0]]=r[x[0]]; got.push(x[1]); } }); normRowDates(target);
       // 출강 학교: 운영 목록에 이 강사가 있으면 운영 목록의 학교로 맞춘다(서류에 적힌 예전 학교명 대신)
       var opP = opsLoaded() ? opsPersonOf(target.name || r.name) : null, schNote='';
       if(opP && opP.schools.length){
@@ -1613,7 +1615,7 @@ openDb().then(async function(){
   var sn=await kvGet('sent'); if(sn) sent=sn;
   var mc=await kvGet('mailCfg'); if(mc) mailCfg=Object.assign(JSON.parse(JSON.stringify(DEFAULT_MAIL)), mc);
   people = await dbAll();
-  people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; });
+  people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p); });
   cur = people.sort(function(a,b){return (b.updated||0)-(a.updated||0);})[0] || newPerson();
   renderAll(); go(page);
 });

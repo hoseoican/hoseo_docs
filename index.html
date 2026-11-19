@@ -677,7 +677,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.19-17';
+var APP_VERSION = '2026.11.19-18';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -976,7 +976,7 @@ function examState(p){
 function plan(p, only){
   var root=subject(p)+'/', files=[], sch=only ? [only] : schoolsOf(p);
   formsFor(p).forEach(function(f){
-    if(f.school) sch.forEach(function(s){ files.push({form:f, school:s, key:'f'+f.no, path: root+(only?'':cleanFile(s)+'/')+formName(p, f, s)}); });
+    if(f.school) sch.forEach(function(s){ files.push({form:f, school:s, key:'f'+f.no, path: root+cleanFile(s)+'/'+formName(p, f, s)}); });
     else files.push({form:f, key:'f'+f.no, path: root+formName(p, f, '')});
   });
   PDFS.forEach(function(m){ (p.pdfs[m.k]||[]).forEach(function(file,i,arr){

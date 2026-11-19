@@ -194,17 +194,17 @@
     w32(ch, 0, 0x67736f20); w32(ch, 4, attr >>> 0); w32(ch, 8, Y); w32(ch, 12, X); w32(ch, 16, W); w32(ch, 20, H);
     w32(ch, 24, 10 + binId); // z-order
     w32(ch, 36, inst); w32(ch, 40, 0); w16(ch, 44, 0);
-    // SHAPE_COMPONENT
+    // SHAPE_COMPONENT — 한글이 만든 그림과 같은 구조: 처음 크기 = 원본, 지금 크기 = 표시 크기, 확대 행렬 = 표시/원본
     var sc = new Uint8Array(196), dv = new DataView(sc.buffer);
-    w32(sc, 0, 0x24636970); w32(sc, 4, 0x24636970);
+    w32(sc, 0, 0x24706963); w32(sc, 4, 0x24706963); // '$pic' (바이트: 63 69 70 24)
     w32(sc, 8, 0); w32(sc, 12, 0); w16(sc, 16, 0); w16(sc, 18, 1);
-    w32(sc, 20, W); w32(sc, 24, H); w32(sc, 28, W); w32(sc, 32, H); w32(sc, 36, 0x04000000 >>> 0);
+    w32(sc, 20, oW); w32(sc, 24, oH); w32(sc, 28, W); w32(sc, 32, H); w32(sc, 36, 0x24080000 >>> 0);
     w16(sc, 40, 0); w32(sc, 42, W >> 1); w32(sc, 46, H >> 1); w16(sc, 50, 1);
     function mat(off, a, b, c, d, e, f) { [a, b, c, d, e, f].forEach(function (v, n) { dv.setFloat64(off + n * 8, v, true); }); }
-    mat(52, 1, 0, 0, 0, 1, 0); mat(100, 1, 0, 0, 0, 1, 0); mat(148, 1, 0, 0, 0, 1, 0);
+    mat(52, 1, 0, 0, 0, 1, 0); mat(100, W / oW, 0, 0, 0, H / oH, 0); mat(148, 1, 0, 0, 0, 1, 0);
     // SHAPE_COMPONENT_PICTURE
     var pc = new Uint8Array(91);
-    [[0, 0], [W, 0], [W, H], [0, H]].forEach(function (pt, n) { w32(pc, 12 + n * 8, pt[0]); w32(pc, 16 + n * 8, pt[1]); });
+    [[0, 0], [oW, 0], [oW, oH], [0, oH]].forEach(function (pt, n) { w32(pc, 12 + n * 8, pt[0]); w32(pc, 16 + n * 8, pt[1]); });
     w32(pc, 44, 0); w32(pc, 48, 0); w32(pc, 52, oW); w32(pc, 56, oH);
     w16(pc, 71, binId); pc[73] = 0; w32(pc, 74, (inst + 1) >>> 0); w32(pc, 78, 0); w32(pc, 82, oW); w32(pc, 86, oH); pc[90] = 0;
     // 문단 글자에 gso 자리 넣기

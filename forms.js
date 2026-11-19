@@ -206,14 +206,15 @@
       var W = Math.round(sw * HU), H = Math.round(sh * HU), oW = im.pxW * 75, oH = im.pxH * 75;
       var X = Math.round((45 + (adj.x || 0) - sw / 2) * HU), Y = Math.round((-2 + (adj.y || 0) - (sh - 8) / 2) * HU);
       var id = 'image' + (Date.now() % 100000);
+      // 한글이 HWPX에 쓰는 그림 요소 순서와 같게: 원본 크기(orgSz) · 표시 크기(curSz) · 확대 행렬 = 표시/원본
       var pic = '<hp:pic id="' + (1900000000 + Math.floor(Math.random() * 1e8)) + '" zOrder="20" numberingType="PICTURE" textWrap="IN_FRONT_OF_TEXT" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" href="" groupLevel="0" instid="' + (900000000 + Math.floor(Math.random() * 1e8)) + '" reverse="0">' +
-        '<hp:offset x="0" y="0"/><hp:orgSz width="' + W + '" height="' + H + '"/><hp:curSz width="' + W + '" height="' + H + '"/>' +
+        '<hp:offset x="0" y="0"/><hp:orgSz width="' + oW + '" height="' + oH + '"/><hp:curSz width="' + W + '" height="' + H + '"/>' +
         '<hp:flip horizontal="0" vertical="0"/><hp:rotationInfo angle="0" centerX="' + (W >> 1) + '" centerY="' + (H >> 1) + '" rotateimage="1"/>' +
-        '<hp:renderingInfo><hc:transMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/><hc:scaMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/><hc:rotMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/></hp:renderingInfo>' +
-        '<hc:img binaryItemIDRef="' + id + '" bright="0" contrast="0" effect="REAL_PIC" alpha="0"/>' +
-        '<hp:imgRect><hc:pt0 x="0" y="0"/><hc:pt1 x="' + W + '" y="0"/><hc:pt2 x="' + W + '" y="' + H + '"/><hc:pt3 x="0" y="' + H + '"/></hp:imgRect>' +
+        '<hp:renderingInfo><hc:transMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/><hc:scaMatrix e1="' + (W / oW).toFixed(6) + '" e2="0" e3="0" e4="0" e5="' + (H / oH).toFixed(6) + '" e6="0"/><hc:rotMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/></hp:renderingInfo>' +
+        '<hp:imgRect><hc:pt0 x="0" y="0"/><hc:pt1 x="' + oW + '" y="0"/><hc:pt2 x="' + oW + '" y="' + oH + '"/><hc:pt3 x="0" y="' + oH + '"/></hp:imgRect>' +
         '<hp:imgClip left="0" right="' + oW + '" top="0" bottom="' + oH + '"/><hp:inMargin left="0" right="0" top="0" bottom="0"/>' +
-        '<hp:imgDim dimwidth="' + oW + '" dimheight="' + oH + '"/><hp:effects/>' +
+        '<hp:imgDim dimwidth="' + oW + '" dimheight="' + oH + '"/>' +
+        '<hc:img binaryItemIDRef="' + id + '" bright="0" contrast="0" effect="REAL_PIC" alpha="0"/><hp:effects/>' +
         '<hp:sz width="' + W + '" widthRelTo="ABSOLUTE" height="' + H + '" heightRelTo="ABSOLUTE" protect="0"/>' +
         '<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="1" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="' + Y + '" horzOffset="' + X + '"/>' +
         '<hp:outMargin left="0" right="0" top="0" bottom="0"/></hp:pic>';

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>앵커늘봄 강사서류 작성</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  @font-face { font-family: 'Pretendard Variable'; font-weight: 45 920; font-style: normal; font-display: swap; src: url('PretendardVariable.woff2') format('woff2-variations'); }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  /* ===================== 호서대학교 테마 (#89171A) — 강사료·자문료 통합 처리 시스템과 같은 디자인 ===================== */
+  :root {
+    --hs: #89171A; --hs-d: #6A1013; --hs-dd: #4A0B0D; --hs-l: #B23A3E;
+    --hs-50: #FBF4F4; --hs-100: #F5E4E4; --hs-200: #E9C6C7;
+    --ink: #2B2324; --mute: #7A6E6F; --line: #E6DEDD; --bg: #F6F3F2;
+    --ok: #2F6B4F; --danger: #B42318; --warn: #A9781F;
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Pretendard Variable', Pretendard, 'Malgun Gothic', sans-serif; -webkit-font-smoothing: antialiased; font-size: 14px; }
+  ::selection { background: rgba(137,23,26,.18); }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 10px; font-size: 14px; }
+  .row label { display: flex; gap: 6px; align-items: center; }
+  input[type=text], input[type=date], input[type=email], input[type=tel], input[type=number], select {
+    padding: 6px 8px; font: inherit; font-size: 14px; border: 1px solid #D6CCCB; border-radius: 6px; background: #fff; color: var(--ink); transition: border-color .15s, box-shadow .15s; }
+  input:focus, select:focus { outline: none; border-color: var(--hs); box-shadow: 0 0 0 3px rgba(137,23,26,.12); }
+  input[type=checkbox], input[type=radio] { accent-color: var(--hs); }
+  button { padding: 8px 18px; background: var(--hs); color: #fff; border: 0; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 600; letter-spacing: -.1px; cursor: pointer;
+    transition: background .15s, transform .05s, box-shadow .15s; box-shadow: 0 1px 2px rgba(74,11,13,.18); }
+  button:hover { background: var(--hs-d); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .45; cursor: default; transform: none; }
+  button.ghost { background: #fff; color: var(--hs); border: 1px solid var(--hs-200); box-shadow: none; }
+  button.ghost:hover { background: var(--hs-50); border-color: var(--hs); }
+  button.save { background: var(--hs-dd); }
+  button.save:hover:not(:disabled) { background: #000; }
+  button.del { background: #fff; color: var(--danger); border: 1px solid #F1C3BF; box-shadow: none; }
+  button.del:hover { background: #FEF3F2; border-color: var(--danger); }
+  button.sm { padding: 4px 10px; font-size: 12px; }
+  .hint { font-size: 12px; color: var(--mute); }
+  .modes { display: inline-flex; background: #F1EBEA; border-radius: 10px; padding: 4px; gap: 2px; box-shadow: inset 0 1px 2px rgba(74,11,13,.08); }
+  .modes label { color: #6F5B5C; background: transparent; border-radius: 7px; padding: 8px 16px; font-weight: 600; cursor: pointer; transition: background .15s, color .15s; }
+  .modes label:hover { background: rgba(255,255,255,.7); color: var(--hs); }
+  .modes label.on { background: var(--hs); color: #fff; box-shadow: 0 2px 6px rgba(137,23,26,.35); }
+  .modes input { display: none; }
+
+  /* 컴팩트 안내: ⓘ (마우스를 올리거나 누르면 전체 설명) */
+  .hint.tip { cursor: help; display: inline-flex; align-items: center; vertical-align: middle; font-size: 0; }
+  .hint.tip .tipbody { display: none; }
+  .hint.tip .ti { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; font: italic 700 10px/1 Georgia, serif;
+    background: var(--hs-100); color: var(--hs); border: 1px solid var(--hs-200); flex: none; transition: background .15s, color .15s; }
+  .hint.tip:hover .ti, .hint.tip:focus .ti, .hint.tip.open .ti { background: var(--hs); color: #fff; border-color: var(--hs); }
+  .hint.tip:focus { outline: none; }
+  #phTip .ti { width: 18px; height: 18px; font-size: 12px; }
+  #tipPop { position: fixed; z-index: 9999; max-width: min(460px, calc(100vw - 24px)); padding: 10px 13px; border-radius: 10px;
+    background: #2B2324; color: #F8F3F2; font-size: 12.5px; line-height: 1.6; box-shadow: 0 10px 30px -10px rgba(0,0,0,.45);
+    pointer-events: none; opacity: 0; transform: translateY(-3px); transition: opacity .12s, transform .12s; }
+  #tipPop.show { opacity: 1; transform: none; }
+  #tipPop b { color: #fff; }
+  #tipPop::before { content: ''; position: absolute; left: var(--ax, 16px); top: -5px; width: 10px; height: 10px; background: #2B2324; transform: rotate(45deg); }
+  #tipPop.up::before { top: auto; bottom: -5px; }
+
+  /* ===================== 화면 구성: 왼쪽 단계 메뉴 + 오른쪽 작업 영역 ===================== */
+  #app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+  #main { min-width: 0; display: flex; flex-direction: column; }
+  #side { position: sticky; top: 0; height: 100vh; overflow-y: auto; color: #fff; padding: 0 0 18px;
+    background: linear-gradient(180deg, var(--hs-dd) 0%, var(--hs-d) 45%, var(--hs) 100%); display: flex; flex-direction: column; }
+  #side h1.brandbar { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; margin: 0; padding: 18px 16px 16px;
+    font-size: 14.5px; line-height: 1.35; font-weight: 700; letter-spacing: -.3px; border-bottom: 1px solid rgba(255,255,255,.12); }
+  #side h1.brandbar img { display: block; width: 48px; height: 48px; object-fit: contain; border-radius: 10px; box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 4px 12px rgba(0,0,0,.28); }
+  #side h1 .brandname { display: block; font-size: 14.5px; line-height: 1.32; letter-spacing: -.4px; color: #fff; word-break: keep-all; }
+  #side h1 .tagline { display: block; margin: 5px 0 0; font-size: 11px; font-weight: 500; line-height: 1.4; color: rgba(255,255,255,.62); word-break: keep-all; }
+  #side h1 .tagline i { font-style: normal; opacity: .6; }
+  .sidebox { margin: 14px 12px 4px; }
+  .sidecap { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,.55); margin: 0 4px 8px; letter-spacing: .6px; }
+  .sidecap button { padding: 2px 9px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.16); color: #fff; box-shadow: none; border-radius: 99px; letter-spacing: 0; }
+  .sidecap button:hover { background: rgba(255,255,255,.28); }
+  #people { list-style: none; margin: 0; padding: 3px; background: rgba(0,0,0,.18); border-radius: 9px; max-height: 260px; overflow-y: auto; }
+  #people li { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,.85); padding: 7px 8px 7px 10px; font-size: 13px; border-radius: 7px; cursor: pointer; }
+  #people li:hover { background: rgba(255,255,255,.1); color: #fff; }
+  #people li.on { background: #fff; color: var(--hs); font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  #people li .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #people li .rl { font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 99px; background: rgba(255,255,255,.16); }
+  #people li.on .rl { background: var(--hs-100); color: var(--hs); }
+  #people li .x { visibility: hidden; padding: 0 5px; font-size: 13px; line-height: 1.2; background: none; box-shadow: none; color: inherit; opacity: .7; }
+  #people li:hover .x, #people li.on .x { visibility: visible; }
+  #people li .x:hover { opacity: 1; background: rgba(0,0,0,.08); }
+  #people li.empty { cursor: default; color: rgba(255,255,255,.55); }
+  #people li.empty:hover { background: none; }
+  #nav { padding: 0 10px; display: flex; flex-direction: column; gap: 1px; }
+  #nav .navg { display: flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.62); margin: 11px 6px 5px; letter-spacing: .2px; }
+  #nav .navg span { font-size: 13px; color: #fff; opacity: .9; }
+  #nav label { display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,.9); padding: 6px 12px 6px 26px; font-size: 13.5px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: background .15s, color .15s; }
+  #nav label:hover { background: rgba(255,255,255,.1); color: #fff; }
+  #nav label.on { background: #fff; color: var(--hs); font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+  #nav input { display: none; }
+  #nav .st { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); flex: none; }
+  #nav .st.ok { background: #4ade80; } #nav .st.warn { background: #fbbf24; } #nav .st.err { background: #f87171; }
+  #side .sidefoot { margin-top: auto; padding: 18px 18px 0; font-size: 11.5px; line-height: 1.6; color: rgba(255,255,255,.55); }
+  #side .sidefoot .ver { margin-top: 8px; display: inline-block; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,.14); color: rgba(255,255,255,.85); font-weight: 600; }
+
+  .panel { background: #fff; padding: 20px 28px 14px; box-shadow: 0 1px 0 var(--line); }
+  #pageHead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-bottom: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+  #bizLogo { display: block; height: 26px; width: auto; margin: 0 0 12px; }
+  #phStep { font-size: 12px; font-weight: 700; color: var(--hs); letter-spacing: .3px; }
+  .ph-n { display: flex; align-items: center; gap: 8px; }
+  #phName { font-size: 22px; font-weight: 800; letter-spacing: -.5px; margin: 2px 0 3px; color: var(--ink); }
+  #phWho { font-size: 13px; color: var(--mute); font-weight: 600; margin-left: 4px; }
+  #actBar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+  #actBar button { padding: 9px 18px; }
+  #msgRow { display: flex; gap: 10px; align-items: center; font-size: 13px; padding: 8px 12px; background: #FCFAFA; border: 1px solid var(--line); border-radius: 10px; }
+  #msgRow.bad { background: #FEF3F2; border-color: #F1C3BF; color: var(--danger); }
+  #msgRow.good { background: #F3F9F5; border-color: #CFE3D7; color: var(--ok); }
+  #msgRow b { white-space: nowrap; }
+  #msgRow .subj { margin-left: auto; display: flex; gap: 6px; align-items: center; color: var(--ink); }
+  #msgRow .subj code { font-family: inherit; font-weight: 700; color: var(--hs-d); background: var(--hs-50); border: 1px solid var(--hs-100); padding: 2px 8px; border-radius: 6px; }
+
+  .work { padding: 18px 28px 8px; flex: 1; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px 12px; margin-bottom: 12px; background: #fff; max-width: 1080px; }
+  .card h3 { font-size: 15px; margin: 0 0 12px; color: var(--hs-d); display: flex; align-items: center; gap: 6px; }
+  .card h3 small { font-weight: 500; color: var(--mute); font-size: 12px; }
+  .fld { display: flex; flex-direction: column; gap: 4px; }
+  .fld > span { font-size: 12.5px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 5px; }
+  .fld > span em { font-style: normal; font-weight: 500; color: var(--mute); font-size: 11.5px; }
+  .grid { display: grid; gap: 12px 14px; }
+  .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fld input, .fld select { width: 100%; min-width: 0; }
+  .span2 { grid-column: span 2; } .span3 { grid-column: span 3; }
+  .derived { font-size: 12.5px; color: var(--mute); margin-top: 10px; }
+  .derived b { color: var(--hs-d); }
+
+  .schools .srow { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .schools .srow .no { width: 22px; height: 22px; border-radius: 50%; background: var(--hs-100); color: var(--hs); font-size: 12px; font-weight: 700; display: grid; place-items: center; flex: none; }
+  .schools .srow input { flex: 1; max-width: 420px; }
+  .schools .srow .w { font-size: 12px; color: var(--warn); }
+
+  table.cv { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.cv th { background: #F3ECEB; color: var(--ink); font-weight: 600; padding: 6px 8px; border: 1px solid var(--line); text-align: center; font-size: 12.5px; }
+  table.cv td { border: 1px solid var(--line); padding: 3px; }
+  table.cv td.g { background: #FCFAFA; text-align: center; font-weight: 700; color: var(--hs-d); width: 70px; }
+  table.cv input { width: 100%; border-color: transparent; border-radius: 4px; padding: 5px 7px; font-size: 13px; }
+  table.cv input:hover { border-color: #E3D9D8; }
+  table.cv input:focus { border-color: var(--hs); background: var(--hs-50); box-shadow: none; }
+
+  .imgs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .drop { border: 1.5px dashed #D3BDBD; border-radius: 12px; background: var(--hs-50); color: #6F5B5C; min-height: 168px; padding: 12px 10px; text-align: center; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; position: relative; transition: .15s; }
+  .drop:hover, .drop.over { border-color: var(--hs); background: var(--hs-100); color: var(--hs-d); }
+  .drop.loaded { border: 1px solid #CFE3D7; background: #F3F9F5; color: var(--ok); }
+  .drop .ph img { max-width: 100%; max-height: 104px; display: block; border-radius: 4px; }
+  .drop .ph img.checker { background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 0 0/12px 12px; }
+  .drop .t { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+  .drop .s { font-size: 11.5px; color: var(--mute); }
+  .drop .x { position: absolute; top: 6px; right: 6px; padding: 1px 7px; font-size: 12px; }
+  .drop .plus { font-size: 26px; line-height: 1; color: var(--hs-l); font-weight: 300; }
+
+  .plist .prow { display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .plist .prow:last-child { border-bottom: 0; }
+  .plist .pno { font-weight: 800; color: var(--hs); font-size: 13px; }
+  .plist .pnm { font-weight: 600; }
+  .plist .pst { font-size: 12px; color: var(--mute); margin-top: 2px; word-break: break-all; }
+  .plist .pst.has { color: var(--ok); }
+  .tag { font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 99px; background: #F1EBEA; color: var(--mute); margin-left: 4px; vertical-align: 1px; }
+
+  .outgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; max-width: 1080px; }
+  .outgrid .card { max-width: none; margin: 0; }
+  .check { list-style: none; margin: 0; padding: 0; columns: 1; }
+  .check li { display: flex; gap: 8px; padding: 4px 0; font-size: 13px; align-items: flex-start; }
+  .check li .i { width: 18px; height: 18px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 800; margin-top: 1px; }
+  .check li.ok .i { background: #E3F1E8; color: var(--ok); }
+  .check li.warn .i { background: #F8EED8; color: var(--warn); }
+  .check li.err .i { background: #FDE4E1; color: var(--danger); }
+  .check li.err { color: var(--danger); font-weight: 600; }
+  .check li a { color: inherit; text-decoration: underline; text-decoration-color: rgba(0,0,0,.2); cursor: pointer; }
+  .tree { font-size: 12.5px; line-height: 1.75; max-height: 560px; overflow: auto; }
+  .tree .fd { font-weight: 700; color: var(--hs-d); margin-top: 4px; }
+  .tree .fd::before { content: '📁 '; }
+  .tree .fl { padding-left: 18px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tree .fl.in { padding-left: 36px; }
+  .tree .fl .ex { color: var(--mute); font-size: 11px; margin-left: 4px; }
+
+  /* 운영 목록에서 불러오기 */
+  .srch { display: flex; gap: 8px; align-items: center; }
+  .srch input { width: 280px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chips button { background: #fff; color: var(--ink); border: 1px solid #E3D9D8; box-shadow: none; padding: 6px 12px; font-weight: 600; font-size: 13px; }
+  .chips button small { color: var(--mute); font-weight: 500; margin-left: 4px; }
+  .chips button:hover { border-color: var(--hs); color: var(--hs); background: var(--hs-50); }
+  .chips button.on { background: var(--hs); border-color: var(--hs); color: #fff; }
+  .chips button.on small { color: rgba(255,255,255,.75); }
+  .chips .none { font-size: 13px; color: var(--mute); }
+  .impgrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; max-width: 1080px; }
+  .impgrid .card { max-width: none; margin: 0; }
+  .term { margin-bottom: 10px; }
+  .term-h { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--hs-d); font-size: 13px; padding: 6px 0 4px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+  .cls { display: grid; grid-template-columns: auto 1fr; gap: 9px; padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .cls:hover { background: var(--hs-50); }
+  .cls input { margin-top: 3px; }
+  .cls b { font-weight: 600; }
+  .cls .meta { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; color: var(--mute); margin-top: 1px; align-items: center; }
+  .pill { font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 99px; background: #F1EBEA; color: var(--mute); }
+  .pill.live { background: var(--hs-100); color: var(--hs); } .pill.done { background: #E3F1E8; color: var(--ok); } .pill.chk { background: #F8EED8; color: var(--warn); }
+  .telpick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; margin-bottom: 10px; padding: 8px 10px; background: #FCF6EA; border: 1px solid #F0E1BF; border-radius: 8px; }
+  .prev { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .prev th { text-align: left; color: var(--mute); font-weight: 600; padding: 6px 8px 6px 0; width: 92px; vertical-align: top; white-space: nowrap; }
+  .prev td { padding: 6px 0; border-bottom: 1px dashed var(--line); word-break: keep-all; }
+  .prev td.empty { color: var(--mute); }
+  .prev tr:last-child td { border-bottom: 0; }
+  table.src { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.src th { background: #F3ECEB; font-weight: 600; padding: 6px 8px; text-align: left; font-size: 12.5px; }
+  table.src td { padding: 6px 8px; border-bottom: 1px solid #F1EBEA; }
+  table.src a { color: var(--hs-d); }
+
+  /* 서류 불러오기 */
+  #imp { border: 1.5px dashed #D3BDBD; border-radius: 12px; background: var(--hs-50); color: #6F5B5C; padding: 18px 16px; text-align: center; cursor: pointer; margin-bottom: 12px; max-width: 1080px; transition: .15s; }
+  #imp:hover, #imp.over { border-color: var(--hs); background: var(--hs-100); color: var(--hs-d); }
+  #imp b { color: var(--hs-d); font-size: 14.5px; }
+  #imp .s { font-size: 12px; margin-top: 4px; color: var(--mute); }
+  #imp.busy { border-style: solid; cursor: progress; }
+  #overlay { display: none; position: fixed; inset: 0; background: rgba(137,23,26,.10); border: 4px dashed var(--hs); z-index: 99; align-items: center; justify-content: center; flex-direction: column; gap: 6px;
+    font-size: 26px; font-weight: 800; color: var(--hs-d); pointer-events: none; backdrop-filter: blur(2px); }
+  #overlay small { font-size: 14px; font-weight: 600; color: var(--mute); }
+  #overlay.on { display: flex; }
+  .imprs { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
+  .impp { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .impp h4 { margin: 0 0 6px; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .impp h4 .tag { margin: 0; }
+  .impp h4 .tag.new { background: #E3F1E8; color: var(--ok); }
+  .impp .got { font-size: 12.5px; color: var(--ink); line-height: 1.6; }
+  .impp .got b { color: var(--ok); font-weight: 700; }
+  .impp ul { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--warn); line-height: 1.55; }
+
+  footer.copy { text-align: center; font-size: 12px; color: var(--mute); padding: 14px 10px 24px; }
+  footer.copy img { height: 16px; width: 16px; object-fit: contain; border-radius: 3px; vertical-align: -3px; margin-right: 5px; }
+
+  .modal { position: fixed; inset: 0; background: rgba(30,10,10,.45); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal.on { display: flex; }
+  .modal .box { background: #fff; border-radius: 14px; padding: 22px 24px; width: min(560px, 92vw); max-height: 88vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .modal h3 { margin: 0 0 6px; font-size: 17px; color: var(--hs-d); }
+  .modal .note { margin: 0 0 12px; font-size: 12.5px; color: var(--mute); line-height: 1.5; }
+  .modal table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .modal th { background: #F3ECEB; font-weight: 600; padding: 5px 8px; text-align: left; font-size: 12.5px; }
+  .modal td { padding: 4px 8px; border-bottom: 1px solid #F1EBEA; }
+  .modal td input { width: 74px; padding: 4px 6px; font-size: 13px; }
+  .modal .act { display: flex; gap: 6px; justify-content: flex-end; margin-top: 14px; }
+
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translate(-50%, 6px); background: #2B2324; color: #F8F3F2; padding: 10px 16px; border-radius: 10px; font-size: 13px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,.45); opacity: 0; transition: .15s; pointer-events: none; z-index: 60; max-width: 90vw; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 1100px) {
+    #app { display: block; }
+    #side { position: static; height: auto; }
+    #nav { flex-direction: row; flex-wrap: wrap; }
+    #nav .navg { width: 100%; margin: 11px 6px 2px; }
+    #nav label { padding: 6px 12px; gap: 8px; }
+    #side .sidefoot { display: none; }
+    .imgs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .outgrid, .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .impgrid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+<aside id="side">
+  <h1 class="brandbar"><img src="brand.png" alt="호서대학교"><span><span class="brandname">앵커늘봄<br>강사서류 작성</span><span class="tagline">강사 계약 서류 <i>—</i> 한 번 입력으로 학교별 한글 서류까지</span></span></h1>
+  <div class="sidebox">
+    <div class="sidecap">강사 목록 <button type="button" id="btnNew">+ 새 강사</button></div>
+    <ul id="people"></ul>
+  </div>
+  <nav id="nav">
+    <div class="navg"><span>①</span>강사 정보</div>
+    <!-- 운영 목록에서 불러오기: 아직 연결 전이라 숨김
+    <label data-page="import"><input type="radio" name="page" value="import">운영 목록에서 불러오기<i class="st" data-sec="import"></i></label> -->
+    <label data-page="info"><input type="radio" name="page" value="info">기본 정보<i class="st" data-sec="info"></i></label>
+    <label data-page="school"><input type="radio" name="page" value="school">출강 학교<i class="st" data-sec="school"></i></label>
+    <div class="navg"><span>②</span>이력서</div>
+    <label data-page="cv"><input type="radio" name="page" value="cv">학력·경력·자격<i class="st" data-sec="cv"></i></label>
+    <div class="navg"><span>③</span>첨부</div>
+    <label data-page="imgs"><input type="radio" name="page" value="imgs">서명·사진·신분증<i class="st" data-sec="imgs"></i></label>
+    <label data-page="pdf"><input type="radio" name="page" value="pdf">PDF 서류<i class="st" data-sec="pdf"></i></label>
+    <div class="navg"><span>④</span>제출</div>
+    <label data-page="out"><input type="radio" name="page" value="out">확인·내려받기<i class="st" data-sec="out"></i></label>
+  </nav>
+  <div class="sidefoot"><span id="storeHint">입력한 내용은 이 브라우저에만 저장됩니다.</span><br><span class="ver" id="verSide"></span></div>
+</aside>
+
+<main id="main">
+<div class="panel">
+  <div id="pageHead">
+    <div class="ph-l"><img id="bizLogo" src="anchor.png" alt="앵커늘봄총괄센터"><div id="phStep"></div><div class="ph-n"><span id="phName"></span><span id="phWho"></span><span id="phTip"></span></div></div>
+    <div id="actBar">
+      <button type="button" class="ghost" id="btnPrev">← 이전</button>
+      <button type="button" class="ghost" id="btnNext">다음 →</button>
+      <button type="button" class="ghost" id="btnSettings">서명 위치 설정</button>
+      <button type="button" class="save" id="btnMake">서류 ZIP 저장</button>
+    </div>
+  </div>
+  <div id="msgRow"><b id="msgHead"></b><span id="msg"></span>
+    <span class="subj">메일 제목 <code id="subject"></code><button type="button" class="ghost sm" id="btnCopy">복사</button></span></div>
+</div>
+
+<div class="work">
+  <!-- ① 운영 목록에서 불러오기 -->
+  <section data-sec="import" hidden>
+    <div class="card">
+      <h3>강사 찾기 <small>운영 목록(호서대 탭)과 강사목록에서 찾습니다</small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">2026 1학기·하계·2학기·동계·학교밖 운영 목록의 <b>「호서대」 탭</b>에서 주강사·보조강사로 들어간 수업을 찾습니다. 「새로나 보조」는 빼고 봅니다.<br>연락처·이메일은 운영 목록에서, 생년월일은 「2026 앵커늘봄 강사목록(5개대학)」에서 가져옵니다.<br><b>주민등록번호·주소·이력·서명·사진은 운영 자료에 없어</b> 직접 넣어야 합니다.</span></span></h3>
+      <div class="srch"><input type="text" id="impQ" placeholder="강사 이름" autocomplete="off"><span class="hint" id="impCount"></span></div>
+      <div class="chips" id="impPeople"></div>
+    </div>
+    <div class="impgrid" id="impBody" hidden>
+      <div class="card"><h3>수업 고르기 <small>고른 수업의 학교·프로그램이 들어갑니다</small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">처음에는 <b>아직 끝나지 않은 수업 중 가장 최근 시기</b>의 초등학교 수업을 골라 둡니다. 이번 계약에 해당하는 수업만 남기세요.<br>「확인 필요」는 이름 칸에 메모(교체, 여러 명 등)가 있는 수업입니다.</span></span></h3>
+        <div id="impTel"></div><div id="impClasses"></div></div>
+      <div class="card"><h3>채울 내용</h3>
+        <table class="prev" id="impPrev"></table>
+        <div class="row" style="margin:14px 0 0;gap:8px"><button type="button" id="impApply">이 내용으로 채우기</button><span class="hint" id="impNote"></span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>운영 자료 <small>구글 드라이브의 원본 시트</small></h3>
+      <table class="src" id="srcTable"></table>
+      <div class="row" style="margin:12px 0 0;gap:8px"><button type="button" class="ghost" id="btnReload">구글 드라이브에서 새로 불러오기</button><span class="hint" id="reloadNote"></span></div>
+      <input type="file" id="srcFile" accept=".xlsx" hidden>
+    </div>
+  </section>
+
+  <!-- ① 기본 정보 -->
+  <section data-sec="info">
+    <div id="imp"><b>강사가 낸 서류 불러오기</b> <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">강사가 보낸 <b>ZIP</b>, 또는 <b>한글(.hwp·.hwpx)·PDF·JPG</b> 파일을 끌어다 놓으면 빈칸을 미리 채웁니다. 화면 어디에 놓아도 됩니다.<br><b>이력서</b>: 성명·생년월일·연락처·주소·이메일·학력·경력·자격·증명사진<br><b>0번 동의서</b>: 주민등록번호 · <b>서약서들</b>: 학교명, 서명 이미지 · <b>2번</b>: 신분증·통장 사진<br><b>PDF·JPG</b>: 파일 이름으로 신체검사서·잠복결핵·졸업증명서·경력/자격 칸에 나눠 넣습니다. JPG는 PDF로 바꿉니다. 신체검사서 이름의 「(2026. 6.)」은 검진일로 씁니다.<br>여러 강사의 폴더가 든 ZIP은 <b>강사별로 나눠서</b> 목록에 넣습니다. 이미 있는 강사(같은 이름)는 <b>비어 있는 칸만</b> 채우고 적어 둔 내용은 바꾸지 않습니다.<br>PDF로 낸 이력서·신분증과 스캔본은 글자를 읽지 못하니 직접 넣어 주세요.</span></span>
+      <div class="s" id="impText">ZIP · HWP · HWPX · PDF · JPG를 끌어다 놓거나 눌러서 고르세요 — 여러 강사 폴더가 든 ZIP도 됩니다</div>
+      <input type="file" id="impFile" multiple accept=".zip,.hwp,.hwpx,.pdf,.jpg,.jpeg,.png" hidden></div>
+    <div class="card">
+      <h3>강사 구분</h3>
+      <div class="row" style="margin:0">
+        <div class="modes" id="role"><label data-v="주강사" class="on">주강사</label><label data-v="보조강사">보조강사</label></div>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody"><b>주강사</b>: 0~3번, 7~12번 서류를 모두 만듭니다.<br><b>보조강사</b>: 11번(안전관리 서약서)과 12번(강사 서약서)은 만들지 않습니다.<br>메일 제목 앞머리도 (주강사)/(보조강사)로 바뀝니다.</span></span>
+        <span class="hint" id="roleHint"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>인적사항 <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">여기 적은 내용이 0번 동의서, 1번 이력서, 11번 안전관리 서약서 등 여러 서류에 함께 들어갑니다.<br>생년월일은 주민등록번호에서 자동으로 만듭니다.</span></span></h3>
+      <div class="grid g4">
+        <label class="fld"><span>성명</span><input type="text" id="name" placeholder="홍길동" autocomplete="off"></label>
+        <label class="fld"><span>주민등록번호</span><input type="text" id="rrn" placeholder="900101-1234567" autocomplete="off"></label>
+        <label class="fld"><span>연락처</span><input type="tel" id="phone" placeholder="010-1234-5678" autocomplete="off"></label>
+        <label class="fld"><span>작성일 <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">0·1·3·7·8·9·10번 서류의 날짜 칸에 들어갑니다.<br>11·12번은 양식에 적힌 날짜(2026. 2. 1.)를 그대로 둡니다.</span></span></span><input type="date" id="date"></label>
+        <label class="fld span3"><span>주소</span><input type="text" id="address" autocomplete="off"></label>
+        <label class="fld"><span>이메일</span><input type="email" id="email" autocomplete="off"></label>
+      </div>
+      <div class="derived" id="birthHint"></div>
+    </div>
+  </section>
+
+  <!-- ① 출강 학교 -->
+  <section data-sec="school" hidden>
+    <div class="card schools">
+      <h3>출강 학교 <small>학교마다 0·3·7·8·9·10번 서류를 따로 만듭니다</small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">게시물 안내대로 <b>정식 학교명</b>을 적어 주세요(약칭 금지). 예: 천안성정초등학교<br>학교가 여러 곳이면 ZIP 안에 학교명 폴더가 따로 생기고, 각 폴더에 그 학교 이름이 들어간 서류가 들어갑니다.</span></span></h3>
+      <div id="schools"></div>
+      <button type="button" class="ghost sm" id="btnAddSchool">+ 학교 추가</button>
+    </div>
+    <div class="card">
+      <h3>서류별 추가 항목</h3>
+      <div class="grid g2">
+        <label class="fld"><span>관할 경찰서 <em>선택 · 0번 「○○경찰서장 귀하」</em></span><input type="text" id="police" placeholder="예: 천안서북" autocomplete="off"></label>
+        <label class="fld" id="progBox"><span>운영 프로그램명 <em>11번 안전관리 서약서 · 진행 프로그램 전부</em></span><input type="text" id="programs" placeholder="예: [과학] 로봇코딩, [미술] 창의미술" autocomplete="off"></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② 이력서 -->
+  <section data-sec="cv" hidden>
+    <div class="card">
+      <h3>이력서 <small>최근 순으로, 항목마다 3개까지</small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">1번 이력서의 학력사항·경력사항·자격증 칸에 위에서부터 차례로 들어갑니다.<br>양식의 회색 예시(상명대학교, 천안초등학교 등)는 지우고 적은 내용만 넣습니다. 비운 줄은 빈칸으로 둡니다.</span></span></h3>
+      <div id="rows"></div>
+    </div>
+  </section>
+
+  <!-- ③ 이미지 -->
+  <section data-sec="imgs" hidden>
+    <div class="card">
+      <h3>이미지 <small>끌어다 놓거나 눌러서 선택</small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody"><b>서명</b>: 흰 종이에 서명하고 촬영한 사진. 여백은 자동으로 자르고, 흰 배경은 투명하게 바꿔 「(서명)」 자리마다 넣습니다.<br><b>증명사진</b>: 3×4 비율로 가운데를 잘라 이력서 사진 칸에 넣습니다.<br><b>신분증·통장 사본</b>: 2번 서류 칸 크기에 맞춰 넣습니다. 계좌번호가 선명해야 합니다.<br>아이폰 HEIC 사진은 열리지 않으니 JPG로 저장해서 올려 주세요.</span></span></h3>
+      <div class="imgs" id="imgs"></div>
+      <label class="row" style="margin:12px 0 0;font-size:13px"><input type="checkbox" id="transparent" checked> 서명 흰 배경을 투명하게 바꾸기</label>
+    </div>
+  </section>
+
+  <!-- ③ PDF -->
+  <section data-sec="pdf" hidden>
+    <div class="card plist">
+      <h3>PDF 서류 <small>스캔본 또는 발급 원본 · ZIP에 같이 넣습니다</small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">PDF 파일 이름은 「번호. 서류명_성명.pdf」로 바꿔서 ZIP 맨 위 폴더에 넣습니다.<br><b>4-1 채용신체검사서</b>: 출강일 기준 1년 이내, 흉부 X-ray 포함. 보건소 건강진단서·보건증은 안 됩니다. 국민건강검진결과서·공무원 채용 신체검사서는 됩니다.<br><b>4-2 잠복결핵</b>: 평생 1회, 혈액검사(IGRA) 양성/음성 표기 필수.<br><b>6번</b>은 해당자만, 여러 개 올릴 수 있습니다.</span></span></h3>
+      <div id="pdfs"></div>
+    </div>
+    <div class="card">
+      <h3>채용신체검사 유효기간 확인</h3>
+      <div class="grid g4">
+        <label class="fld"><span>검진일</span><input type="date" id="examDate"></label>
+        <label class="fld"><span>첫 출강일</span><input type="date" id="startDate"></label>
+      </div>
+      <div class="derived" id="examHint"></div>
+    </div>
+  </section>
+
+  <!-- ④ 확인·내려받기 -->
+  <section data-sec="out" hidden>
+    <div class="outgrid">
+      <div class="card"><h3>확인</h3><ul class="check" id="check"></ul></div>
+      <div class="card"><h3>만들어지는 파일 <small id="fileCount"></small></h3><div class="tree" id="files"></div></div>
+    </div>
+  </section>
+</div>
+
+<footer class="copy"><img src="favicon.png" alt="">© 호서대학교 앵커늘봄총괄센터 · 만든이 이지훈 · <span id="verFoot"></span></footer>
+</main>
+</div>
+
+<div class="modal" id="settings"><div class="box">
+  <h3>서명 위치 설정</h3>
+  <p class="note">한글에서 열었을 때 서명이 「(서명)」 글자에서 벗어나 있으면 서류별로 옮기세요. 단위는 mm, 오른쪽·아래가 + 입니다. 이 브라우저에 기억됩니다.</p>
+  <div class="grid g2" style="margin-bottom:12px">
+    <label class="fld"><span>서명 너비 (mm)</span><input type="number" id="sSignW" step="1" min="10" max="40"></label>
+    <label class="fld"><span>서명 최대 높이 (mm)</span><input type="number" id="sSignH" step="1" min="6" max="20"></label>
+  </div>
+  <table id="adj"></table>
+  <div class="act"><button type="button" class="ghost" id="btnReset">기본값 복원</button><button type="button" id="btnCloseSet">닫기</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<div id="overlay">서류 불러오기<small>ZIP · HWP · HWPX · PDF · JPG — 놓으면 빈칸을 채웁니다</small></div>
+<div class="modal" id="impDlg"><div class="box">
+  <h3>불러온 내용</h3>
+  <p class="note">비어 있던 칸만 채웠습니다. 강사 목록에서 한 명씩 열어 확인해 주세요.</p>
+  <div class="imprs" id="impRes"></div>
+  <div class="act"><button type="button" id="impClose">확인</button></div>
+</div></div>
+
+<script src="cfb.min.js"></script>
+<script src="pako.min.js"></script>
+<script src="jszip.min.js"></script>
+<script src="hwpcore.js"></script>
+<script src="forms.js"></script>
+<script src="importer.js"></script>
+<script src="templates.js"></script>
+<!-- 운영 목록 기능 연결 전: <script src="opsdata.js"></script> <script src="opsdata-snapshot.js"></script> -->
+<script>
+// 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
+var APP_VERSION = '2026.11.19-4';
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var FORMS = Forms.FORMS;
+['verSide','verFoot'].forEach(function(id){ $(id).textContent = '버전 ' + APP_VERSION; });
+
+var PAGES = ['info','school','cv','imgs','pdf','out'];   // 'import'(운영 목록) 은 연결 후 맨 앞에 다시 넣기
+var PAGE_META = {
+  import: ['① 강사 정보', '운영 목록에서 불러오기', '이름으로 찾아 학교·프로그램·연락처를 한 번에 채웁니다. 주민등록번호·주소는 직접 넣어야 합니다.'],
+  info:   ['① 강사 정보', '기본 정보', '구분과 인적사항을 넣으면 여러 서류의 같은 칸에 함께 들어갑니다.'],
+  school: ['① 강사 정보', '출강 학교', '학교명이 들어가는 서류는 학교마다 따로 만듭니다.'],
+  cv:     ['② 이력서', '학력·경력·자격', '1번 이력서에 들어갑니다.'],
+  imgs:   ['③ 첨부', '서명·사진·신분증', '서명은 모든 서약서·동의서의 서명란에 들어갑니다.'],
+  pdf:    ['③ 첨부', 'PDF 서류', '스캔본 서류를 올리면 이름을 맞춰 ZIP에 넣습니다.'],
+  out:    ['④ 제출', '확인·내려받기', '빠진 것을 확인하고 ZIP으로 저장합니다.']
+};
+var IMG_KEYS = [
+  {k:'sign', t:'서명', s:'흰 종이에 서명 → 촬영'},
+  {k:'photo', t:'증명사진', s:'3×4 비율로 맞춥니다'},
+  {k:'idcard', t:'신분증', s:'주민등록증·운전면허증'},
+  {k:'bank', t:'통장 사본', s:'계좌번호가 선명하게'}
+];
+var PDFS = [
+  {k:'exam', no:'4-1', t:'채용신체검사서', need:true},
+  {k:'tb', no:'4-2', t:'잠복결핵 검사 확인서', need:true},
+  {k:'grad', no:'5', t:'최종학력 졸업증명서', need:true},
+  {k:'cert', no:'6', t:'자격증 사본 및 경력증명서', need:false, multi:true}
+];
+var ROWS = [
+  {k:'edu', t:'학력', f:[['period','기간','2010.03. ~ 2014.02.'],['school','학교명','호서대학교'],['major','전공','']]},
+  {k:'career', t:'경력', f:[['period','기간','2024.03. ~ 2025.02.'],['place','장소','천안초등학교'],['note','비고','방과후 코딩 강사']]},
+  {k:'cert', t:'자격증', f:[['date','취득일자','2021.03.01'],['name','자격사항',''],['issuer','시행처','']]}
+];
+var DEFAULT_SET = {signW:24, signHmax:12, signAdj:{}};
+
+/* ---------- 저장 (IndexedDB, 안 되면 메모리) ---------- */
+var mem = {}, idb = null;
+function openDb(){ return new Promise(function(res){ try{ var r=indexedDB.open('anchor-lecturer-docs',1); r.onupgradeneeded=function(){ r.result.createObjectStore('people',{keyPath:'id'}); r.result.createObjectStore('kv'); }; r.onsuccess=function(){ idb=r.result; res(); }; r.onerror=function(){ res(); }; }catch(e){ res(); } }); }
+function tx(store, mode){ return idb.transaction(store, mode).objectStore(store); }
+function dbAll(){ return new Promise(function(res){ if(!idb) return res(Object.keys(mem).map(function(k){return mem[k];})); try{ var q=tx('people','readonly').getAll(); q.onsuccess=function(){res(q.result||[]);}; q.onerror=function(){res([]);}; }catch(e){ res([]); } }); }
+function dbPut(p){ mem[p.id]=p; if(!idb) return; try{ tx('people','readwrite').put(p); }catch(e){} }
+function dbDel(id){ delete mem[id]; if(!idb) return; try{ tx('people','readwrite').delete(id); }catch(e){} }
+function kvGet(k){ return new Promise(function(res){ if(!idb) return res(null); try{ var q=tx('kv','readonly').get(k); q.onsuccess=function(){res(q.result||null);}; q.onerror=function(){res(null);}; }catch(e){ res(null); } }); }
+function kvPut(k,v){ if(!idb) return; try{ tx('kv','readwrite').put(v,k); }catch(e){} }
+
+/* ---------- 상태 ---------- */
+var people = [], cur = null, page = 'info', settings = JSON.parse(JSON.stringify(DEFAULT_SET));
+function today(){ return new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function blank(){
+  return { id: 'p'+Date.now()+Math.floor(Math.random()*1000), role:'주강사', name:'', rrn:'', phone:'', address:'', email:'', date: today(),
+    schools:[''], police:'', programs:'', edu:[{},{},{}], career:[{},{},{}], cert:[{},{},{}], imgs:{}, pdfs:{}, examDate:'', startDate:'', updated: Date.now() };
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function each(sel, fn, root){ Array.prototype.forEach.call((root||document).querySelectorAll(sel), fn); }
+
+/* ---------- 화면 틀 ---------- */
+function buildRows(){
+  var h = '<table class="cv"><tr><th></th><th style="width:30%">기간·일자</th><th>학교명·장소·자격사항</th><th>전공·비고·시행처</th></tr>';
+  ROWS.forEach(function(g){
+    for(var r=0;r<3;r++){
+      h += '<tr>'+(r===0?'<td class="g" rowspan="3">'+g.t+'</td>':'')+g.f.map(function(f){
+        return '<td><input type="text" data-row="'+g.k+'" data-r="'+r+'" data-f="'+f[0]+'" placeholder="'+(r===0?esc(f[1]+(f[2]?' (예: '+f[2]+')':'')):'')+'" autocomplete="off"></td>';
+      }).join('')+'</tr>';
+    }
+  });
+  $('rows').innerHTML = h + '</table>';
+}
+function buildImgs(){
+  $('imgs').innerHTML = IMG_KEYS.map(function(m){
+    return '<div class="drop" data-img="'+m.k+'"><div class="ph"></div><div class="t">'+m.t+'</div><div class="s">'+m.s+'</div><input type="file" accept="image/*" hidden></div>';
+  }).join('');
+  each('.drop', function(el){
+    var inp = el.querySelector('input');
+    el.addEventListener('click', function(e){ if(e.target.classList.contains('x')) return; inp.click(); });
+    inp.addEventListener('change', function(){ if(inp.files[0]) setImage(el.dataset.img, inp.files[0]); inp.value=''; });
+    el.addEventListener('dragover', function(e){ e.preventDefault(); el.classList.add('over'); });
+    el.addEventListener('dragleave', function(){ el.classList.remove('over'); });
+    el.addEventListener('drop', function(e){ e.preventDefault(); e.stopPropagation(); el.classList.remove('over'); $('overlay').classList.remove('on'); var f=e.dataTransfer.files[0]; if(f) setImage(el.dataset.img, f); });
+  });
+}
+function buildPdfs(){
+  $('pdfs').innerHTML = PDFS.map(function(p){
+    return '<div class="prow" data-pdf="'+p.k+'"><div class="pno">'+p.no+'</div><div><div class="pnm">'+p.t+(p.need?'':'<span class="tag">해당자</span>')+'</div><div class="pst"></div></div>'+
+      '<div><input type="file" accept="application/pdf,.pdf" '+(p.multi?'multiple':'')+' hidden><button type="button" class="ghost sm up">파일 선택</button> <button type="button" class="del sm clr" hidden>삭제</button></div></div>';
+  }).join('');
+  each('[data-pdf]', function(row){
+    var k=row.dataset.pdf, inp=row.querySelector('input');
+    row.querySelector('.up').onclick=function(){ inp.click(); };
+    row.querySelector('.clr').onclick=function(){ delete cur.pdfs[k]; save(); renderPdfs(); refresh(); };
+    inp.onchange=async function(){
+      var list=[];
+      for(var i=0;i<inp.files.length;i++){ var f=inp.files[i]; list.push({name:f.name, type:f.type, data:new Uint8Array(await f.arrayBuffer())}); }
+      var meta=PDFS.filter(function(p){return p.k===k;})[0];
+      cur.pdfs[k] = meta.multi ? (cur.pdfs[k]||[]).concat(list) : list.slice(0,1);
+      inp.value=''; save(); renderPdfs(); refresh();
+    };
+  });
+}
+
+/* ---------- 이미지 손질 ---------- */
+function loadImage(blob){ return new Promise(function(res,rej){ var u=URL.createObjectURL(blob), im=new Image(); im.onload=function(){ res(im); }; im.onerror=function(){ URL.revokeObjectURL(u); rej(new Error('이미지를 열 수 없습니다. JPG·PNG로 저장해서 다시 올려 주세요 (아이폰 HEIC는 안 열립니다)')); }; im.src=u; }); }
+function canvasBlob(c, type, q){ return new Promise(function(res){ c.toBlob(res, type, q); }); }
+async function processImage(kind, file){
+  var im = await loadImage(file), W=im.naturalWidth, H=im.naturalHeight, c=document.createElement('canvas'), x=c.getContext('2d');
+  if(kind==='sign'){
+    var sc=Math.min(1, 1200/Math.max(W,H)); c.width=Math.round(W*sc); c.height=Math.round(H*sc);
+    x.drawImage(im,0,0,c.width,c.height);
+    var d=x.getImageData(0,0,c.width,c.height), px=d.data, minX=c.width, minY=c.height, maxX=-1, maxY=-1, transparent=$('transparent').checked;
+    for(var i=0;i<px.length;i+=4){
+      var l=0.3*px[i]+0.59*px[i+1]+0.11*px[i+2];
+      if(transparent){ var a = l>200 ? 0 : l>140 ? Math.round((200-l)/60*255) : 255; px[i+3]=Math.min(px[i+3],a); }
+      if(px[i+3]>40 && l<200){ var p=i/4, xx=p%c.width, yy=(p/c.width)|0; if(xx<minX)minX=xx; if(xx>maxX)maxX=xx; if(yy<minY)minY=yy; if(yy>maxY)maxY=yy; }
+    }
+    x.putImageData(d,0,0);
+    if(maxX>minX && maxY>minY){ var m=6; minX=Math.max(0,minX-m); minY=Math.max(0,minY-m); maxX=Math.min(c.width-1,maxX+m); maxY=Math.min(c.height-1,maxY+m);
+      var c2=document.createElement('canvas'); c2.width=maxX-minX+1; c2.height=maxY-minY+1; c2.getContext('2d').drawImage(c,minX,minY,c2.width,c2.height,0,0,c2.width,c2.height); c=c2; }
+    return { blob: await canvasBlob(c,'image/png'), ext:'png', pxW:c.width, pxH:c.height };
+  }
+  if(kind==='photo'){
+    var tw=600, th=800, r=3/4, sw=W, sh=H, sx=0, sy=0;
+    if(W/H>r){ sw=H*r; sx=(W-sw)/2; } else { sh=W/r; sy=(H-sh)/2; }
+    c.width=tw; c.height=th; x.fillStyle='#fff'; x.fillRect(0,0,tw,th); x.drawImage(im,sx,sy,sw,sh,0,0,tw,th);
+    return { blob: await canvasBlob(c,'image/jpeg',0.9), ext:'jpg', pxW:tw, pxH:th };
+  }
+  var s2=Math.min(1, 1800/Math.max(W,H)); c.width=Math.round(W*s2); c.height=Math.round(H*s2);
+  x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
+  return { blob: await canvasBlob(c,'image/jpeg',0.88), ext:'jpg', pxW:c.width, pxH:c.height };
+}
+async function setImage(k, file){
+  try{
+    var r = await processImage(k, file);
+    cur.imgs[k] = { data: new Uint8Array(await r.blob.arrayBuffer()), ext:r.ext, pxW:r.pxW, pxH:r.pxH };
+    save(); renderImgs(); refresh();
+  }catch(e){ toast(e.message); }
+}
+
+/* ---------- 그리기 ---------- */
+function renderList(){
+  people.sort(function(a,b){ return (b.updated||0)-(a.updated||0); });
+  $('people').innerHTML = people.length ? people.map(function(p){
+    return '<li data-id="'+p.id+'" class="'+(cur&&cur.id===p.id?'on':'')+'"><span class="nm">'+(esc(p.name)||'(이름 없음)')+'</span><span class="rl">'+p.role.replace('강사','')+'</span><button type="button" class="x" title="삭제">×</button></li>';
+  }).join('') : '<li class="empty">아직 없습니다</li>';
+  each('li[data-id]', function(li){
+    li.onclick=function(e){ if(e.target.classList.contains('x')){ askDelete(li.dataset.id); return; } select(li.dataset.id); };
+  }, $('people'));
+}
+var pendingDel=null;
+function askDelete(id){
+  var p=people.filter(function(x){return x.id===id;})[0]; if(!p) return;
+  if(pendingDel!==id){ pendingDel=id; toast('× 를 한 번 더 누르면 「'+(p.name||'이름 없음')+'」 자료를 지웁니다'); setTimeout(function(){ if(pendingDel===id) pendingDel=null; },3000); return; }
+  pendingDel=null; dbDel(id); people=people.filter(function(x){return x.id!==id;});
+  if(cur&&cur.id===id) cur = people[0] || newPerson();
+  renderAll();
+}
+function renderForm(){
+  ['name','rrn','phone','address','email','date','police','programs','examDate','startDate'].forEach(function(k){ $(k).value = cur[k]||''; });
+  each('label', function(b){ b.classList.toggle('on', b.dataset.v===cur.role); }, $('role'));
+  each('[data-row]', function(inp){ var row=(cur[inp.dataset.row]||[])[+inp.dataset.r]||{}; inp.value=row[inp.dataset.f]||''; });
+  renderSchools(); renderImgs(); renderPdfs();
+}
+function renderSchools(){
+  if(!cur.schools.length) cur.schools=[''];
+  $('schools').innerHTML = cur.schools.map(function(s,i){
+    return '<div class="srow"><span class="no">'+(i+1)+'</span><input type="text" data-school="'+i+'" value="'+esc(s)+'" placeholder="예: 천안성정초등학교" autocomplete="off">'+
+      (cur.schools.length>1?'<button type="button" class="del sm" data-rm="'+i+'">빼기</button>':'')+'<span class="w"></span></div>';
+  }).join('');
+  each('[data-school]', function(inp){ inp.oninput=function(){ cur.schools[+inp.dataset.school]=inp.value; schoolWarn(); changed(); }; }, $('schools'));
+  each('[data-rm]', function(b){ b.onclick=function(){ cur.schools.splice(+b.dataset.rm,1); renderSchools(); changed(); }; }, $('schools'));
+  schoolWarn();
+}
+function schoolWarn(){ each('.srow', function(r){ var v=r.querySelector('input').value.trim(); r.querySelector('.w').textContent = v && !/초등학교$/.test(v) ? '정식 학교명(…초등학교)인지 확인' : ''; }, $('schools')); }
+var urls = {};
+function renderImgs(){
+  IMG_KEYS.forEach(function(m){
+    var el=document.querySelector('.drop[data-img="'+m.k+'"]'), ph=el.querySelector('.ph'), v=cur.imgs[m.k];
+    if(urls[m.k]){ URL.revokeObjectURL(urls[m.k]); delete urls[m.k]; }
+    var old=el.querySelector('.x'); if(old) old.remove();
+    el.classList.toggle('loaded', !!v);
+    if(v){
+      urls[m.k]=URL.createObjectURL(new Blob([v.data],{type:v.ext==='png'?'image/png':'image/jpeg'}));
+      ph.innerHTML='<img src="'+urls[m.k]+'" class="'+(m.k==='sign'?'checker':'')+'" alt="">';
+      el.querySelector('.s').textContent=v.pxW+'×'+v.pxH+' · 눌러서 바꾸기';
+      var x=document.createElement('button'); x.type='button'; x.className='del x'; x.textContent='×'; x.title='삭제';
+      x.onclick=function(e){ e.stopPropagation(); delete cur.imgs[m.k]; save(); renderImgs(); refresh(); };
+      el.appendChild(x);
+    } else { ph.innerHTML='<div class="plus">+</div>'; el.querySelector('.s').textContent=m.s; }
+  });
+}
+function renderPdfs(){
+  PDFS.forEach(function(p){
+    var row=document.querySelector('[data-pdf="'+p.k+'"]'), v=cur.pdfs[p.k], st=row.querySelector('.pst'), clr=row.querySelector('.clr');
+    if(v&&v.length){ st.className='pst has'; st.innerHTML=v.map(function(f){ return esc(f.name)+(/\.pdf$/i.test(f.name)?'':' <b style="color:var(--warn)">(PDF 아님)</b>'); }).join(' · '); clr.hidden=false; }
+    else { st.className='pst'; st.textContent = p.need?'아직 없음':'해당자만'; clr.hidden=true; }
+  });
+}
+function renderSettings(){
+  $('sSignW').value=settings.signW; $('sSignH').value=settings.signHmax;
+  var names={'0':'0. 범죄경력·행정정보 동의서','1':'1. 이력서','3':'3. 개인정보 동의서','7':'7. 청렴서약서','8':'8. 성범죄·아동학대 서약서','9':'9. 개인정보 보안서약서','10':'10. 교육의 중립성 서약서','11':'11. 안전관리 서약서','12':'12. 강사 서약서'};
+  $('adj').innerHTML='<tr><th>서류</th><th>가로</th><th>세로</th></tr>'+Object.keys(names).map(function(k){ var a=settings.signAdj[k]||{};
+    return '<tr><td>'+names[k]+'</td><td><input type="number" step="1" data-adj="'+k+'" data-ax="x" value="'+(a.x||0)+'"></td><td><input type="number" step="1" data-adj="'+k+'" data-ax="y" value="'+(a.y||0)+'"></td></tr>'; }).join('');
+  each('input', function(inp){ inp.oninput=function(){ var a=settings.signAdj[inp.dataset.adj]=settings.signAdj[inp.dataset.adj]||{}; a[inp.dataset.ax]=+inp.value||0; kvPut('settings',settings); }; }, $('adj'));
+}
+
+/* ---------- 쪽 이동 ---------- */
+function go(p){
+  page = p; try{ localStorage.setItem('lecDocsPage', p); }catch(e){}
+  each('#nav label', function(l){ l.classList.toggle('on', l.dataset.page===p); });
+  each('.work section', function(s){ s.hidden = s.dataset.sec!==p; });
+  var mm = PAGE_META[p];
+  $('phStep').textContent = mm[0]; $('phName').textContent = mm[1];
+  $('phTip').innerHTML = '<span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">'+esc(mm[2])+'</span></span>';
+  var i = PAGES.indexOf(p);
+  $('btnPrev').disabled = i===0; $('btnNext').hidden = i===PAGES.length-1;
+  window.scrollTo(0,0);
+}
+
+/* ---------- 확인 목록 ---------- */
+function schoolsOf(p){ return (p.schools||[]).map(function(s){return s.trim();}).filter(Boolean); }
+function formsFor(p){ return FORMS.filter(function(f){ return f.roles.indexOf(p.role)>=0; }); }
+function subject(p){ return '('+p.role+')'+(p.name.trim()||'성명')+'_강사서류_제출'; }
+function checks(p){
+  var out=[], rrn=(p.rrn||'').replace(/\D/g,''), sch=schoolsOf(p);
+  function add(sec, lv, t){ out.push({sec:sec, lv:lv, t:t}); }
+  p.name.trim() ? add('info','ok','성명') : add('info','err','성명을 넣어 주세요');
+  rrn.length===13 ? add('info','ok','주민등록번호') : add('info','err','주민등록번호 13자리를 넣어 주세요');
+  (p.phone||'').replace(/\D/g,'').length>=10 ? add('info','ok','연락처') : add('info','err','연락처를 넣어 주세요');
+  p.address ? add('info','ok','주소') : add('info','warn','주소가 비어 있습니다 (이력서)');
+  p.email ? add('info','ok','이메일') : add('info','warn','이메일이 비어 있습니다 (이력서)');
+  if(!sch.length) add('school','err','출강 학교를 넣어 주세요');
+  else sch.forEach(function(s){ /초등학교$/.test(s) ? add('school','ok',s) : add('school','warn','「'+s+'」 정식 학교명(…초등학교)인지 확인'); });
+  if(p.role==='주강사') p.programs ? add('school','ok','운영 프로그램명') : add('school','warn','운영 프로그램명이 비어 있습니다 (11번)');
+  (p.edu||[]).some(function(r){return r&&r.school;}) ? add('cv','ok','학력') : add('cv','warn','학력이 비어 있습니다');
+  IMG_KEYS.forEach(function(m){ p.imgs[m.k] ? add('imgs','ok', m.t+' 이미지') : add('imgs', m.k==='sign'||m.k==='photo'?'err':'warn', m.t+' 이미지가 없습니다'); });
+  PDFS.forEach(function(m){ if(!m.need) return; (p.pdfs[m.k]||[]).length ? add('pdf','ok', m.t) : add('pdf','warn', m.t+' PDF가 없습니다'); });
+  var e = examState(p); if(e) add('pdf', e.lv, e.t);
+  return out;
+}
+function examState(p){
+  if(!p.examDate) return null;
+  var base = p.startDate || p.date, diff=(new Date(base)-new Date(p.examDate))/86400000;
+  if(diff>365) return {lv:'err', t:'신체검사가 출강일 기준 1년을 넘었습니다 ('+p.examDate+' 검진)'};
+  if(diff<-1) return {lv:'warn', t:'검진일이 출강일보다 뒤입니다'};
+  return {lv:'ok', t:'신체검사 1년 이내 ('+Math.round(diff)+'일 전 검진)'};
+}
+function plan(p){
+  var nm=p.name.trim()||'성명', root=subject(p)+'/', files=[], sch=schoolsOf(p);
+  formsFor(p).forEach(function(f){
+    if(f.school) sch.forEach(function(s){ files.push({form:f, school:s, path: root+s+'/'+f.out.replace('{name}',nm)}); });
+    else files.push({form:f, path: root+f.out.replace('{name}',nm)});
+  });
+  PDFS.forEach(function(m){ (p.pdfs[m.k]||[]).forEach(function(file,i,arr){
+    var ext=(file.name.match(/\.[a-z0-9]+$/i)||['.pdf'])[0].toLowerCase();
+    files.push({pdf:file, path: root+m.no+'. '+m.t+'_'+nm+(arr.length>1?'_'+(i+1):'')+ext});
+  }); });
+  return files;
+}
+function natSort(a,b){ return a.localeCompare(b,'ko',{numeric:true}); }
+function refresh(){
+  var c=checks(cur), icon={ok:'✓',warn:'!',err:'✕'};
+  $('check').innerHTML=c.map(function(x){ return '<li class="'+x.lv+'"><span class="i">'+icon[x.lv]+'</span><span>'+(x.lv==='ok'?esc(x.t):'<a data-goto="'+x.sec+'">'+esc(x.t)+'</a>')+'</span></li>'; }).join('');
+  each('[data-goto]', function(a){ a.onclick=function(){ go(a.dataset.goto); }; }, $('check'));
+  // 메뉴 옆 상태 점
+  PAGES.forEach(function(s){
+    var lv = s==='out' ? (c.some(function(x){return x.lv==='err';})?'err':c.some(function(x){return x.lv==='warn';})?'warn':'ok')
+      : (function(l){ return l.some(function(x){return x.lv==='err';})?'err':l.some(function(x){return x.lv==='warn';})?'warn':l.length?'ok':''; })(c.filter(function(x){return x.sec===s;}));
+    var dot=document.querySelector('#nav .st[data-sec="'+s+'"]'); dot.className='st '+lv;
+  });
+  // 파일 목록
+  var pl=plan(cur), top=[], dirs={};
+  pl.forEach(function(f){ var parts=f.path.split('/').slice(1); if(parts.length===1) top.push(parts[0]); else (dirs[parts[0]]=dirs[parts[0]]||[]).push(parts[1]); });
+  var fl=function(n, inner){ var m=n.match(/^(.*?)(\.[a-z]+)$/i)||[n,n,'']; return '<div class="fl'+(inner?' in':'')+'" title="'+esc(n)+'">'+esc(m[1])+'<span class="ex">'+m[2]+'</span></div>'; };
+  $('files').innerHTML = '<div class="fd">'+esc(subject(cur))+'</div>' + top.sort(natSort).map(function(n){ return fl(n); }).join('') +
+    Object.keys(dirs).map(function(d){ return '<div class="fd" style="padding-left:18px">'+esc(d)+'</div>'+dirs[d].sort(natSort).map(function(n){ return fl(n, true); }).join(''); }).join('');
+  var nh=pl.filter(function(f){return f.form;}).length, np=pl.filter(function(f){return f.pdf;}).length;
+  $('fileCount').textContent = '한글 '+nh+'개'+(np?' · PDF '+np+'개':'');
+  // 위쪽 상태 줄
+  var errs=c.filter(function(x){return x.lv==='err';}), warns=c.filter(function(x){return x.lv==='warn';});
+  $('msgRow').className = errs.length ? 'bad' : warns.length ? '' : 'good';
+  $('msgHead').textContent = errs.length ? '채울 항목 '+errs.length+'개' : warns.length ? '확인 '+warns.length+'개' : '준비 완료';
+  $('msg').textContent = errs.length ? errs.map(function(x){return x.t.replace(/을 넣어 주세요|를 넣어 주세요|이 없습니다|가 없습니다/,'');}).join(', ') : warns.length ? '빠져도 만들 수 있습니다 · 「확인·내려받기」에서 목록 확인' : '한글 '+nh+'개'+(np?' + PDF '+np+'개':'')+'를 ZIP 하나로 저장합니다';
+  $('subject').textContent=subject(cur);
+  $('btnMake').disabled = !!errs.length;
+  $('btnMake').title = errs.length ? '빨간 항목을 먼저 채워 주세요' : '';
+  $('phWho').textContent = cur.name.trim() ? '— '+cur.name.trim()+' ('+cur.role+')' : '';
+  $('roleHint').textContent = cur.role==='주강사' ? '11·12번 서약서까지 만듭니다' : '11·12번 서약서는 만들지 않습니다';
+  $('progBox').style.display = cur.role==='주강사' ? '' : 'none';
+  var b=Forms.birthFromRrn(cur.rrn); $('birthHint').innerHTML = b ? '생년월일 <b>'+b+'</b> · 주민등록번호에서 자동' : '';
+  var e=examState(cur); $('examHint').innerHTML = e ? '<span style="color:'+({ok:'var(--ok)',warn:'var(--warn)',err:'var(--danger)'}[e.lv])+';font-weight:600">'+esc(e.t)+'</span>' : '첫 출강일을 비우면 작성일을 기준으로 봅니다.';
+}
+
+/* ---------- 입력 반영 ---------- */
+var saveT=null;
+function save(){ cur.updated=Date.now(); dbPut(cur); if(people.indexOf(cur)<0) people.push(cur); }
+function changed(){ refresh(); var li=document.querySelector('#people li.on .nm'); if(li) li.textContent=cur.name.trim()||'(이름 없음)'; clearTimeout(saveT); saveT=setTimeout(function(){ save(); renderList(); }, 400); }
+function bind(){
+  ['name','rrn','phone','address','email','date','police','programs','examDate','startDate'].forEach(function(k){ $(k).addEventListener('input', function(){ cur[k]=$(k).value; changed(); }); });
+  $('phone').addEventListener('blur', function(){ cur.phone=Forms.fmtPhone(cur.phone); $('phone').value=cur.phone; changed(); });
+  $('rrn').addEventListener('blur', function(){ cur.rrn=Forms.fmtRrn(cur.rrn); $('rrn').value=cur.rrn; changed(); });
+  $('rows').addEventListener('input', function(e){ var t=e.target; if(!t.dataset.row) return; var arr=cur[t.dataset.row]=cur[t.dataset.row]||[{},{},{}]; arr[+t.dataset.r]=arr[+t.dataset.r]||{}; arr[+t.dataset.r][t.dataset.f]=t.value; changed(); });
+  each('label', function(b){ b.onclick=function(){ cur.role=b.dataset.v; renderForm(); changed(); }; }, $('role'));
+  each('#nav label', function(l){ l.onclick=function(e){ e.preventDefault(); go(l.dataset.page); }; });
+  $('btnPrev').onclick=function(){ var i=PAGES.indexOf(page); if(i>0) go(PAGES[i-1]); };
+  $('btnNext').onclick=function(){ var i=PAGES.indexOf(page); if(i<PAGES.length-1) go(PAGES[i+1]); };
+  $('btnAddSchool').onclick=function(){ cur.schools.push(''); renderSchools(); var l=$('schools').querySelectorAll('input'); l[l.length-1].focus(); };
+  $('btnNew').onclick=function(){ cur=newPerson(); renderAll(); go('info'); $('name').focus(); };
+  $('btnCopy').onclick=function(){ try{ navigator.clipboard.writeText(subject(cur)).then(function(){ toast('메일 제목을 복사했습니다'); }, function(){ toast('복사가 막혀 있습니다. 제목을 직접 선택해 주세요'); }); }catch(e){ toast('복사가 막혀 있습니다. 제목을 직접 선택해 주세요'); } };
+  $('btnMake').onclick=make;
+  $('btnSettings').onclick=function(){ renderSettings(); $('settings').classList.add('on'); };
+  $('btnCloseSet').onclick=function(){ $('settings').classList.remove('on'); };
+  $('settings').onclick=function(e){ if(e.target===$('settings')) $('settings').classList.remove('on'); };
+  $('sSignW').oninput=function(){ settings.signW=+$('sSignW').value||24; kvPut('settings',settings); };
+  $('sSignH').oninput=function(){ settings.signHmax=+$('sSignH').value||12; kvPut('settings',settings); };
+  $('btnReset').onclick=function(){ settings=JSON.parse(JSON.stringify(DEFAULT_SET)); kvPut('settings',settings); renderSettings(); };
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') $('settings').classList.remove('on'); });
+}
+function newPerson(){ var p=blank(); people.push(p); dbPut(p); return p; }
+function select(id){ var p=people.filter(function(x){return x.id===id;})[0]; if(p){ cur=p; renderAll(); } }
+function renderAll(){ renderList(); renderForm(); refresh(); }
+
+/* ---------- 만들기 ---------- */
+function b64(s){ var bin=atob(s), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+var downloadsP = null;
+function getDownloads(){
+  if(!downloadsP) downloadsP = (window.claude && window.claude.use) ? Promise.race([window.claude.use('downloads').catch(function(){return null;}), new Promise(function(r){ setTimeout(function(){ r(null); }, 4000); })]) : Promise.resolve(null);
+  return downloadsP;
+}
+async function make(){
+  var btn=$('btnMake'); btn.disabled=true; btn.textContent='만드는 중…';
+  try{
+    var p=cur, env={HwpCore:HwpCore, deps:{CFB:CFB, pako:pako}, JSZip:JSZip};
+    var imgs={}; Object.keys(p.imgs).forEach(function(k){ var v=p.imgs[k]; imgs[k]={bytes:v.data, ext:v.ext, pxW:v.pxW, pxH:v.pxH}; });
+    var d={ name:p.name.trim(), rrn:p.rrn, phone:p.phone, address:p.address, email:p.email, date:p.date, police:(p.police||'').trim(), programs:(p.programs||'').trim(),
+      edu:p.edu, career:p.career, cert:p.cert };
+    var zip=new JSZip(), warns=[];
+    for(const f of plan(p)){
+      if(f.pdf){ zip.file(f.path, f.pdf.data); continue; }
+      var tpl=b64(TEMPLATES[f.form.file]);
+      var r = f.form.hwpx ? await Forms.fillHwpx(env, f.form, tpl, d, f.school, imgs, settings) : Forms.fillHwp(env, f.form, tpl, d, f.school, imgs, settings);
+      r.warn.forEach(function(w){ if(warns.indexOf(w)<0) warns.push(w); });
+      zip.file(f.path, r.bytes);
+    }
+    var blob = await zip.generateAsync({type:'blob', compression:'DEFLATE'});
+    var fname = subject(p)+'.zip';
+    var dl = await getDownloads();
+    if(!dl){
+      // claude.ai 밖(깃허브 페이지 등): 브라우저 내려받기
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+      toast('저장했습니다: '+fname+(warns.length?' · '+warns.join(', '):'')); return;
+    }
+    try{ await dl.save({filename:fname, data:blob}); toast('저장했습니다: '+fname+(warns.length?' · '+warns.join(', '):'')); }
+    catch(e){ if(e&&e.code==='declined') toast('저장을 취소했습니다'); else toast('저장하지 못했습니다: '+((e&&e.message)||e)); }
+  }catch(e){ console.error(e); toast('만들지 못했습니다: '+e.message); }
+  finally{ btn.textContent='서류 ZIP 저장'; refresh(); }
+}
+
+/* ---------- 서류 불러오기 ---------- */
+var importing=false;
+async function readFiles(list){ var out=[]; for(var i=0;i<list.length;i++){ var f=list[i]; out.push({name:f.name, path:f.webkitRelativePath||f.name, bytes:new Uint8Array(await f.arrayBuffer())}); } return out; }
+async function normalizeImg(kind, v){
+  // 다른 서류에서 꺼낸 그림도 올린 사진처럼 손질 (서명 배경 투명·여백 자르기, 사진 3×4)
+  try{ var r=await processImage(kind, new Blob([v.data],{type:v.ext==='png'?'image/png':'image/jpeg'})); return { data:new Uint8Array(await r.blob.arrayBuffer()), ext:r.ext, pxW:r.pxW, pxH:r.pxH }; }
+  catch(e){ return v; }
+}
+function emptyRows(a){ return !(a||[]).some(function(x){ return x && Object.keys(x).some(function(k){ return x[k]; }); }); }
+async function importFiles(list){
+  if(importing || !list.length) return;
+  importing=true; $('imp').classList.add('busy'); $('impText').textContent='읽는 중… ('+list.length+'개 파일)';
+  try{
+    var files=await readFiles(list);
+    var env={HwpCore:HwpCore, deps:{CFB:CFB, pako:pako}, JSZip:JSZip, DOMParser:DOMParser};
+    var found=await Importer.readDrop(env, files, b64(TEMPLATES['1. 이력서 (강사명).hwp']));
+    var html=[], lastTarget=null;
+    for(const r of found){
+      var target=null, isNew=false;
+      if(r.name) target=people.filter(function(p){ return p.name.replace(/\s/g,'')===r.name; })[0];
+      if(!target && found.length===1 && cur && !cur.name.trim()) target=cur;
+      if(!target){ target=blank(); isNew=true; people.push(target); }
+      var got=[];
+      var setIf=function(k, v, label){ if(v && !String(target[k]||'').trim()){ target[k]=v; got.push(label); } };
+      setIf('name', r.name, '성명');
+      if(r.role && (isNew || got.indexOf('성명')>=0)) target.role=r.role;
+      setIf('rrn', r.rrn ? Forms.fmtRrn(r.rrn) : '', '주민번호');
+      setIf('phone', r.phone ? Forms.fmtPhone(r.phone) : '', '연락처');
+      setIf('address', r.address, '주소'); setIf('email', r.email, '이메일');
+      [['edu','학력'],['career','경력'],['cert','자격']].forEach(function(x){ if(!emptyRows(r[x[0]]) && emptyRows(target[x[0]])){ target[x[0]]=r[x[0]]; got.push(x[1]); } });
+      var sch=schoolsOf(target), added=r.schools.filter(function(s){ return sch.indexOf(s)<0; });
+      if(added.length){ target.schools=sch.concat(added); got.push('학교('+added.join(', ')+')'); }
+      var imgNames={sign:'서명',photo:'사진',idcard:'신분증',bank:'통장'};
+      for(const k of Object.keys(r.imgs)){ if(!target.imgs[k]){ target.imgs[k] = (k==='sign'||k==='photo') ? await normalizeImg(k, r.imgs[k]) : r.imgs[k]; got.push(imgNames[k]); } }
+      var pdfN=0;
+      Object.keys(r.pdfs).forEach(function(k){
+        var have=(target.pdfs[k]||[]).map(function(f){return f.name;}), meta=PDFS.filter(function(p){return p.k===k;})[0];
+        r.pdfs[k].forEach(function(f){ if(have.indexOf(f.name)>=0) return; if(!meta.multi && (target.pdfs[k]||[]).length) return; (target.pdfs[k]=target.pdfs[k]||[]).push({name:f.name,type:f.type,data:f.data}); pdfN++; });
+      });
+      if(pdfN) got.push('PDF '+pdfN+'개');
+      if(r.examDate && !target.examDate){ target.examDate=r.examDate; got.push('검진일'+(r.examGuess?'(월만)':'')); }
+      target.updated=Date.now(); dbPut(target); lastTarget=target;
+      var notes=r.notes.slice();
+      if(r.birth && r.rrn && Forms.birthFromRrn(r.rrn).replace(/\D/g,'')!==r.birth.replace(/\D/g,'')) notes.push('이력서 생년월일('+r.birth+')이 주민번호와 다릅니다');
+      if(r.examGuess) notes.push('검진일은 파일 이름의 연·월만 보고 1일로 넣었습니다. 서류의 정확한 날짜로 고쳐 주세요');
+      html.push('<div class="impp"><h4>'+esc(target.name||'(이름 못 찾음)')+' <span class="tag'+(isNew?' new':'')+'">'+(isNew?'새로 추가':'기존 강사')+'</span><span class="tag">'+target.role+'</span></h4>'+
+        '<div class="got">'+(got.length?'채움: <b>'+got.map(esc).join(' · ')+'</b>':'새로 채운 칸이 없습니다 (이미 입력되어 있음)')+'</div>'+
+        (notes.length?'<ul>'+notes.map(function(n){return '<li>'+esc(n)+'</li>';}).join('')+'</ul>':'')+'</div>');
+    }
+    if(lastTarget) cur=lastTarget;
+    renderAll();
+    $('impRes').innerHTML = html.join('') || '<div class="impp">읽을 수 있는 서류가 없었습니다.</div>';
+    $('impDlg').classList.add('on');
+  }catch(e){ console.error(e); toast('불러오지 못했습니다: '+(e.message||e)); }
+  finally{ importing=false; $('imp').classList.remove('busy'); $('impText').textContent='ZIP · HWP · HWPX · PDF · JPG를 끌어다 놓거나 눌러서 고르세요 — 여러 강사 폴더가 든 ZIP도 됩니다'; }
+}
+function bindImport(){
+  $('imp').addEventListener('click', function(e){ if(e.target.closest('.hint.tip')) return; $('impFile').click(); });
+  $('impFile').addEventListener('change', function(){ var l=Array.prototype.slice.call($('impFile').files); $('impFile').value=''; importFiles(l); });
+  $('impClose').onclick=function(){ $('impDlg').classList.remove('on'); };
+  var depth=0, ov=$('overlay');
+  function hasFiles(e){ return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types||[], 'Files')>=0; }
+  document.addEventListener('dragenter', function(e){ if(!hasFiles(e)) return; depth++; if(!e.target.closest || !e.target.closest('.drop')) ov.classList.add('on'); });
+  document.addEventListener('dragover', function(e){ if(!hasFiles(e)) return; e.preventDefault(); var inZone=e.target.closest && e.target.closest('.drop'); ov.classList.toggle('on', !inZone); });
+  document.addEventListener('dragleave', function(){ depth=Math.max(0,depth-1); if(!depth) ov.classList.remove('on'); });
+  document.addEventListener('drop', function(e){ depth=0; ov.classList.remove('on'); if(!hasFiles(e)) return; if(e.target.closest && e.target.closest('.drop')) return; e.preventDefault(); importFiles(Array.prototype.slice.call(e.dataTransfer.files)); });
+}
+
+var toastT=null;
+function toast(t){ var el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(function(){ el.classList.remove('on'); }, 3800); }
+
+/* ---------- 컴팩트 안내 툴팁 (.hint.tip 의 .tipbody 내용을 띄움) ---------- */
+(function(){
+  var pop=document.createElement('div'); pop.id='tipPop'; document.body.appendChild(pop);
+  var curTip=null;
+  function show(el){
+    var b=el.querySelector('.tipbody'); if(!b) return;
+    curTip=el; each('.hint.tip.open', function(x){ if(x!==el) x.classList.remove('open'); }); el.classList.add('open');
+    pop.innerHTML=b.innerHTML; pop.classList.remove('up'); pop.style.left='0px'; pop.style.top='0px';
+    var r=(el.querySelector('.ti')||el).getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight;
+    var x=Math.max(12, Math.min(r.left+r.width/2-20, innerWidth-pw-12)), y=r.bottom+9;
+    if(y+ph>innerHeight-8 && r.top-ph-9>8){ y=r.top-ph-9; pop.classList.add('up'); }
+    pop.style.left=x+'px'; pop.style.top=y+'px';
+    pop.style.setProperty('--ax', Math.max(10, Math.min(pw-20, r.left+r.width/2-x-5))+'px');
+    pop.classList.add('show');
+  }
+  function hide(){ pop.classList.remove('show'); if(curTip) curTip.classList.remove('open'); curTip=null; }
+  document.addEventListener('mouseover', function(e){ var t=e.target.closest&&e.target.closest('.hint.tip'); if(t&&t!==curTip) show(t); else if(!t&&curTip&&!curTip.matches(':focus')) hide(); });
+  document.addEventListener('focusin', function(e){ var t=e.target.closest&&e.target.closest('.hint.tip'); if(t) show(t); });
+  document.addEventListener('focusout', function(e){ if(e.target===curTip) hide(); });
+  document.addEventListener('click', function(e){ var t=e.target.closest&&e.target.closest('.hint.tip'); if(t){ e.preventDefault(); if(curTip===t&&pop.classList.contains('show')) hide(); else show(t); } else hide(); });
+  addEventListener('scroll', hide, true); addEventListener('resize', hide);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') hide(); });
+})();
+
+/* ---------- 시작 ---------- */
+buildRows(); buildImgs(); buildPdfs(); bind(); bindImport();
+var startPage='info'; try{ var sp=localStorage.getItem('lecDocsPage'); if(PAGES.indexOf(sp)>=0) startPage=sp; }catch(e){}
+go(startPage);
+openDb().then(async function(){
+  if(!idb) $('storeHint').textContent='이 브라우저에서는 저장이 안 됩니다. 창을 닫으면 내용이 사라집니다.';
+  var s=await kvGet('settings'); if(s) settings=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SET)), s);
+  people = await dbAll();
+  people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; });
+  cur = people.sort(function(a,b){return (b.updated||0)-(a.updated||0);})[0] || newPerson();
+  renderAll();
+});
+getDownloads();
+})();
+</script>
+</body>
+</html>

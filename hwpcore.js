@@ -114,7 +114,9 @@
     if (extraMask) w32(hdr, 4, (u32(hdr, 4) | extraMask) >>> 0);
     function shift(pos) { return pos >= to ? pos + delta : (pos > from ? from : pos); }
     var ins = 0;
-    if (p.ti >= 0) recs[p.ti].data = td;
+    // 한글은 문단 끝 글자만 있는 빈 문단에는 PARA_TEXT 를 두지 않는다
+    if (codes.length === 1) { if (p.ti >= 0) { recs.splice(p.ti, 1); ins = -1; } }
+    else if (p.ti >= 0) recs[p.ti].data = td;
     else { recs.splice(p.i + 1, 0, { tag: T.PARA_TEXT, level: p.level + 1, data: td }); ins = 1; }
     var ci = p.ci >= 0 ? p.ci + ins : -1, li = p.li >= 0 ? p.li + ins : -1, ri = p.ri >= 0 ? p.ri + ins : -1;
     if (ci >= 0) {
@@ -189,7 +191,7 @@
     var oW = Math.round((opt.pxW || 100) * 75), oH = Math.round((opt.pxH || 100) * 75);
     var inst = (0x10000000 + Math.floor(Math.random() * 0x0fffffff)) >>> 0;
     var attr = opt.inline
-      ? (1 | (2 << 3) | (3 << 8) | (1 << 13) | (1 << 14) | (4 << 15) | (2 << 18) | (3 << 21) | (1 << 26))
+      ? 0x042a2211 // 한글이 이력서 사진 칸에 넣은 글자처럼 취급 그림과 같은 속성(겹침 없음, 위아래 배치)
       : 0x444a2210; // 기존 양식의 서명 그림과 같은 배치 속성(문단 기준 세로, 단 기준 가로)
     // CTRL_HEADER gso
     var ch = new Uint8Array(46);
@@ -227,6 +229,12 @@
       { tag: T.SHAPE_PICTURE, level: level + 2, data: pc });
     this.reindex();
     this._splice(this.paras[p.idx], pos, pos, ctrlCodes, 0x800);
+    // 글자처럼 취급한 그림: 줄 높이를 그림 높이에 맞춘다(한글이 저장하는 값과 같게)
+    var np = this.paras[p.idx];
+    if (opt.inline && np.li >= 0 && this.recs[np.li].data.length === 36) {
+      var ls = this.recs[np.li].data;
+      if (u32(ls, 8) < H) { w32(ls, 8, H); w32(ls, 12, H); w32(ls, 16, Math.round(H * 0.85)); }
+    }
   };
 
   // 표 셀 안 문단 지우기 (셀의 문단 수도 줄임)

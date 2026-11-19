@@ -147,7 +147,7 @@
   function dot(iso) { if (!iso) return ''; var p = iso.split('-'); return p[0] + '. ' + (+p[1]) + '. ' + (+p[2]) + '.'; }
   function period(classes) {
     var s = classes.map(function (c) { return c.start; }).filter(Boolean).sort()[0] || '', e = classes.map(function (c) { return c.end; }).filter(Boolean).sort().pop() || '';
-    return s || e ? dot(s) + ' ~ ' + dot(e) : '';
+    return s || e ? dot(s) + '~' + dot(e) : '';
   }
 
   var api = { fullSchool: fullSchool, contactName: contactName, parseSheet: parseSheet, parseWorkbook: parseWorkbook, bySchool: bySchool, byPerson: byPerson, programText: programText, period: period, phones: phones, emailOf: emailOf, parseDate: parseDate, namesIn: namesIn, norm: norm };

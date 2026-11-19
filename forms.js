@@ -10,7 +10,36 @@
     var d = String(rrn || '').replace(/\D/g, '');
     if (d.length < 7) return '';
     var g = +d[6], cent = (g === 1 || g === 2 || g === 5 || g === 6) ? 1900 : (g === 3 || g === 4 || g === 7 || g === 8) ? 2000 : (g === 9 || g === 0) ? 1800 : 1900;
-    return (cent + +d.slice(0, 2)) + '. ' + d.slice(2, 4) + '. ' + d.slice(4, 6) + '.';
+    return (cent + +d.slice(0, 2)) + '. ' + (+d.slice(2, 4)) + '. ' + (+d.slice(4, 6)) + '.';
+  }
+  /* 날짜 표기 통일(국립국어원 문장 부호 해설 기준)
+     - 연월일은 마침표로: 2025. 5. 27.  (숫자 앞 0 없음, 마침표 뒤 한 칸, 끝에도 마침표)
+     - 연·월만: 2025. 5.   연도만(2023년)은 그대로 둔다
+     - 두 자리 연도(24.07.17)는 네 자리로: 2024. 7. 17.
+     - 기간 물결표는 앞뒤를 붙인다: 2025. 1.~2025. 4. */
+  function normDates(text) {
+    var s = String(text == null ? '' : text);
+    if (!/\d/.test(s)) return s;
+    var re = /(^|[^\d])(\d{4}|'\d{2}|\d{2}(?=\s*[.\/-]\s*\d{1,2}\s*[.\/-]\s*\d{1,2}))\s*(?:년|[.\/-])\s*(\d{1,2})(?!\d)(?:(\s*월|\s*\.|[\/-](?=\d))(?:\s*(\d{1,2})(?!\d)(?:\s*(일|\.))?)?)?/g;
+    s = s.replace(re, function (all, pre, y, m, sep2, d, sep3) {
+      var yy = y.replace("'", ''); if (yy.length === 2) yy = (+yy >= 50 ? '19' : '20') + yy;
+      var mm = +m, dd = d == null ? null : +d;
+      if (mm < 1 || mm > 12) return all;
+      // 월 다음 구분자 없이 숫자가 오면(2025. 3 15명 등) 날로 보지 않는다
+      if (dd != null && !sep2) { dd = null; }
+      if (dd != null && (dd < 1 || dd > 31)) return all;
+      var out = yy + '. ' + mm + '.' + (dd != null ? ' ' + dd + '.' : '');
+      var rest = dd != null ? '' : (sep2 || d == null ? '' : '');
+      // 날로 쓰지 않은 숫자는 되돌린다
+      if (d != null && dd == null) rest = ' ' + d + (sep3 || '');
+      return pre + out + rest;
+    });
+    s = s.replace(/\.\.+/g, '.');
+    s = s.replace(/\s*[~∼～〜]\s*/g, '~');                 // 물결표 앞뒤 붙이기
+    s = s.replace(/(\d\.)\s+-\s+(?=\d)/g, '$1~');        // 날짜 사이 ' - ' 는 물결표로
+    s = s.replace(/(\d\.)(?=[가-힣])/g, '$1 ');           // 2026. 6.현재 → 2026. 6. 현재
+    s = s.replace(/(\d\.)\s*,\s*(?=\d)/g, '$1, ');       // 나열 쉼표
+    return s.replace(/\s{2,}/g, ' ').trim();
   }
   function fmtRrn(rrn) { var d = String(rrn || '').replace(/\D/g, ''); return d.length === 13 ? d.slice(0, 6) + '-' + d.slice(6) : String(rrn || ''); }
   function fmtPhone(t) {
@@ -140,7 +169,7 @@
     var ops = [];
     idxs.forEach(function (start, r) {
       fields.forEach(function (f, c) {
-        ops.push({ i: start + c, shapeFrom: shapeFrom, set: function (d) { var row = (d[key] || [])[r] || {}; return row[f] || ''; } });
+        ops.push({ i: start + c, shapeFrom: shapeFrom, set: function (d) { var row = (d[key] || [])[r] || {}; var v = row[f] || ''; return (f === 'period' || f === 'date') ? normDates(v) : v; } });
       });
     });
     return ops;
@@ -234,6 +263,6 @@
     return { bytes: await out.generateAsync({ type: 'uint8array', compression: 'DEFLATE' }), warn: warn };
   }
 
-  var api = { FORMS: FORMS, fillHwp: fillHwp, fillHwpx: fillHwpx, dateKor: dateKor, dateDot: dateDot, birthFromRrn: birthFromRrn, fmtRrn: fmtRrn, fmtPhone: fmtPhone, nameInGap: nameInGap };
+  var api = { FORMS: FORMS, normDates: normDates, fillHwp: fillHwp, fillHwpx: fillHwpx, dateKor: dateKor, dateDot: dateDot, birthFromRrn: birthFromRrn, fmtRrn: fmtRrn, fmtPhone: fmtPhone, nameInGap: nameInGap };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Forms = api;
 })(typeof self !== 'undefined' ? self : this);

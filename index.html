@@ -677,7 +677,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.19-14';
+var APP_VERSION = '2026.11.19-15';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -710,9 +710,9 @@ var PDFS = [
   {k:'cert', no:'6', t:'자격증 사본 및 경력증명서', need:false, multi:true}
 ];
 var ROWS = [
-  {k:'edu', t:'학력', f:[['period','기간','2010.03. ~ 2014.02.'],['school','학교명','호서대학교'],['major','전공','']]},
-  {k:'career', t:'경력', f:[['period','기간','2024.03. ~ 2025.02.'],['place','장소','천안초등학교'],['note','비고','방과후 코딩 강사']]},
-  {k:'cert', t:'자격증', f:[['date','취득일자','2021.03.01'],['name','자격사항',''],['issuer','시행처','']]}
+  {k:'edu', t:'학력', f:[['period','기간','2010. 3.~2014. 2.'],['school','학교명','호서대학교'],['major','전공','']]},
+  {k:'career', t:'경력', f:[['period','기간','2024. 3.~2025. 2.'],['place','장소','천안초등학교'],['note','비고','방과후 코딩 강사']]},
+  {k:'cert', t:'자격증', f:[['date','취득일자','2021. 3. 1.'],['name','자격사항',''],['issuer','시행처','']]}
 ];
 var DEFAULT_NAMES = { person: '({구분}){성명}_강사서류_제출', school: '{학교명}_강사서류_{인원}명', pdf: '{번호}. {서류명}_{성명}', forms: {} };
 var DEFAULT_SET = {signW:24, signHmax:12, signAdj:{}, names: DEFAULT_NAMES, include1112: false};
@@ -1031,6 +1031,8 @@ function bind(){
   ['name','rrn','phone','address','email','date','police','programs','examDate','startDate'].forEach(function(k){ $(k).addEventListener('input', function(){ cur[k]=$(k).value; changed(); }); });
   $('phone').addEventListener('blur', function(){ cur.phone=Forms.fmtPhone(cur.phone); $('phone').value=cur.phone; changed(); });
   $('rrn').addEventListener('blur', function(){ cur.rrn=Forms.fmtRrn(cur.rrn); $('rrn').value=cur.rrn; changed(); });
+  // 기간·취득일자는 칸을 벗어날 때 날짜 표기를 통일한다(2025. 5. 27., 2025. 1.~2025. 4.)
+  $('rows').addEventListener('focusout', function(e){ var t=e.target; if(!t.dataset||!t.dataset.row||(t.dataset.f!=='period'&&t.dataset.f!=='date')) return; var v=Forms.normDates(t.value); if(v===t.value) return; t.value=v; var arr=cur[t.dataset.row]=cur[t.dataset.row]||[{},{},{}]; arr[+t.dataset.r]=arr[+t.dataset.r]||{}; arr[+t.dataset.r][t.dataset.f]=v; changed(); });
   $('rows').addEventListener('input', function(e){ var t=e.target; if(!t.dataset.row) return; var arr=cur[t.dataset.row]=cur[t.dataset.row]||[{},{},{}]; arr[+t.dataset.r]=arr[+t.dataset.r]||{}; arr[+t.dataset.r][t.dataset.f]=t.value; changed(); });
   each('label', function(b){ b.onclick=function(){ cur.role=b.dataset.v; renderForm(); changed(); }; }, $('role'));
   each('#nav label', function(l){ l.onclick=function(e){ e.preventDefault(); go(l.dataset.page); }; });

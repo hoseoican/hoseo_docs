@@ -96,6 +96,14 @@
   #nav .st { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); flex: none; }
   #nav .st.ok { background: #4ade80; } #nav .st.warn { background: #fbbf24; } #nav .st.err { background: #f87171; }
   #side .sidefoot { margin-top: auto; padding: 18px 18px 0; font-size: 11.5px; line-height: 1.6; color: rgba(255,255,255,.55); }
+  #side .sidefoot .bk { display: block; margin: 0 0 6px; padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.10); color: #fff; font-size: 12px; cursor: pointer; text-align: left; border: 1px solid rgba(255,255,255,.18); width: 100%; font-family: inherit; }
+  #side .sidefoot .bk:hover { background: rgba(255,255,255,.18); }
+  #side .sidefoot .bk small { display: block; color: rgba(255,255,255,.65); font-size: 11px; margin-top: 1px; }
+  #side .sidefoot .bk.warn small { color: #ffd479; }
+  #backupDlg .opt { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line, #e5e5e5); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+  #backupDlg .opt input { margin-top: 3px; }
+  #backupDlg .opt small { display: block; color: #777; }
+  #backupDlg h4 { margin: 14px 0 6px; font-size: 14px; }
   #side .sidefoot .ver { margin-top: 8px; display: inline-block; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,.14); color: rgba(255,255,255,.85); font-weight: 600; }
 
   .panel { background: #fff; padding: 20px 28px 14px; box-shadow: 0 1px 0 var(--line); }
@@ -400,7 +408,7 @@
     <label data-page="out"><input type="radio" name="page" value="out">확인·내려받기<i class="st" data-sec="out"></i></label>
     <label data-page="mail"><input type="radio" name="page" value="mail">학교별 메일<i class="st" data-sec="mail"></i></label>
   </nav>
-  <div class="sidefoot"><span id="storeHint">입력한 내용은 이 브라우저에만 저장됩니다.</span><br><span class="ver" id="verSide"></span></div>
+  <div class="sidefoot"><button type="button" class="bk" id="btnBackup">💾 백업·복원<small id="bkState">백업한 적 없음</small></button><span id="storeHint">입력한 내용은 이 브라우저에만 저장됩니다.</span><br><span class="ver" id="verSide"></span></div>
 </aside>
 
 <main id="main">
@@ -644,6 +652,21 @@
   <label class="row" style="margin:12px 0 0;font-size:13px"><input type="checkbox" id="sdPeople" checked> 강사 목록의 출강 학교 이름도 함께 바꾸기</label>
   <div class="act"><button type="button" class="ghost" id="sdCancel">취소</button><button type="button" id="sdSave">저장</button></div>
 </div></div>
+<div class="modal" id="backupDlg"><div class="box">
+  <h3>백업·복원</h3>
+  <p class="note">강사 목록·운영 목록·담당자·메일 템플릿·발송 기록·설정을 파일 하나(.zip)로 저장합니다. 브라우저 기록을 지우거나 PC를 바꿔도 이 파일로 되살릴 수 있습니다. <b>주민등록번호 등 개인정보가 들어 있으니</b> 안전한 곳에 보관하세요.</p>
+  <h4>지금 백업</h4>
+  <div class="row" style="margin:0;gap:8px"><button type="button" class="save" id="bkNow">백업 파일 받기</button><span class="hint" id="bkNowInfo"></span></div>
+  <h4>자동 백업</h4>
+  <label class="opt"><input type="radio" name="bkMode" value="off"><span><b>끄기</b><small>직접 「백업 파일 받기」를 누를 때만 저장합니다. 7일 넘게 백업하지 않으면 왼쪽 아래에 알려 줍니다.</small></span></label>
+  <label class="opt" id="bkOptFolder"><input type="radio" name="bkMode" value="folder"><span><b>폴더에 자동 저장 (추천)</b><small>고른 폴더(예: 바탕화면·OneDrive)에 내용이 바뀌면 2분 뒤 자동 저장합니다. 하루에 파일 하나, 최근 14일치만 남깁니다. Chrome·Edge에서 됩니다.</small>
+    <span class="row" style="margin:6px 0 0;gap:6px"><button type="button" class="ghost sm" id="bkPick">폴더 고르기</button><span class="hint" id="bkDirName"></span></span></span></label>
+  <label class="opt"><input type="radio" name="bkMode" value="download"><span><b>하루 한 번 자동 내려받기</b><small>그날 처음 내용이 바뀌면 2분 뒤 백업 파일을 「다운로드」 폴더에 받습니다.</small></span></label>
+  <h4>복원</h4>
+  <div class="row" style="margin:0 0 6px;gap:14px;font-size:13px"><label class="row" style="margin:0;gap:4px"><input type="radio" name="bkHow" value="merge" checked> 합치기 <span class="hint">(같은 이름 강사는 더 최근에 고친 쪽)</span></label><label class="row" style="margin:0;gap:4px"><input type="radio" name="bkHow" value="replace"> 덮어쓰기 <span class="hint">(지금 내용을 지우고 백업으로)</span></label></div>
+  <div class="row" style="margin:0;gap:8px"><button type="button" class="ghost" id="bkRestoreBtn">백업 파일 고르기</button><input type="file" id="bkFile" accept=".zip,.json" hidden><span class="hint" id="bkRestoreInfo"></span></div>
+  <div class="row" style="justify-content:flex-end;margin:14px 0 0"><button type="button" class="ghost" id="bkClose">닫기</button></div>
+</div></div>
 <div class="modal" id="bridgeDlg"><div class="box">
   <h3>학교 메일로 바로 보내기 설정 (처음 한 번)</h3>
   <p class="note">「✉ 학교 메일로 보내기」를 누르면 호서대 웹메일 쓰기 창이 열리고 받는 사람·제목·본문·ZIP 첨부가 자동으로 채워집니다. Chrome에 아래를 한 번만 설치하면 됩니다.</p>
@@ -691,7 +714,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.19-25';
+var APP_VERSION = '2026.11.19-26';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -736,10 +759,10 @@ var mem = {}, idb = null;
 function openDb(){ return new Promise(function(res){ try{ var r=indexedDB.open('anchor-lecturer-docs',1); r.onupgradeneeded=function(){ r.result.createObjectStore('people',{keyPath:'id'}); r.result.createObjectStore('kv'); }; r.onsuccess=function(){ idb=r.result; res(); }; r.onerror=function(){ res(); }; }catch(e){ res(); } }); }
 function tx(store, mode){ return idb.transaction(store, mode).objectStore(store); }
 function dbAll(){ return new Promise(function(res){ if(!idb) return res(Object.keys(mem).map(function(k){return mem[k];})); try{ var q=tx('people','readonly').getAll(); q.onsuccess=function(){res(q.result||[]);}; q.onerror=function(){res([]);}; }catch(e){ res([]); } }); }
-function dbPut(p){ mem[p.id]=p; if(!idb) return; try{ tx('people','readwrite').put(p); }catch(e){} }
-function dbDel(id){ delete mem[id]; if(!idb) return; try{ tx('people','readwrite').delete(id); }catch(e){} }
+function dbPut(p){ mem[p.id]=p; bkDirty(); if(!idb) return; try{ tx('people','readwrite').put(p); }catch(e){} }
+function dbDel(id){ delete mem[id]; bkDirty(); if(!idb) return; try{ tx('people','readwrite').delete(id); }catch(e){} }
 function kvGet(k){ return new Promise(function(res){ if(!idb) return res(null); try{ var q=tx('kv','readonly').get(k); q.onsuccess=function(){res(q.result||null);}; q.onerror=function(){res(null);}; }catch(e){ res(null); } }); }
-function kvPut(k,v){ if(!idb) return; try{ tx('kv','readwrite').put(v,k); }catch(e){} }
+function kvPut(k,v){ if(k!=='backupCfg' && k!=='backupDir') bkDirty(); if(!idb) return; try{ tx('kv','readwrite').put(v,k); }catch(e){} }
 
 /* ---------- 상태 ---------- */
 var people = [], cur = null, page = 'info', settings = JSON.parse(JSON.stringify(DEFAULT_SET));
@@ -795,6 +818,130 @@ function buildPdfs(){
       save(); renderPdfs(); refresh(); toast('PDF를 넣었습니다');
     };
   });
+}
+
+/* ---------- 백업·복원 ---------- */
+var BK_KEYS=['settings','ops','contacts','mailCfg','sent'], bkCfg={mode:'off', last:0, lastDay:''}, bkDir=null, bkTimer=null, bkReady=false, bkBusy=false;
+function u8ToB64(u){ var s='', CH=0x8000; for(var i=0;i<u.length;i+=CH) s+=String.fromCharCode.apply(null, u.subarray(i,i+CH)); return btoa(s); }
+function b64ToU8(b){ var s=atob(b), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
+function bkStamp(){ var d=new Date(), z=function(n){ return ('0'+n).slice(-2); }; return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+async function bkMake(){
+  var data={ app:'anchor-lecturer-docs', version:APP_VERSION, created:new Date().toISOString(), people: await dbAll(), kv:{} };
+  for(const k of BK_KEYS){ data.kv[k]=await kvGet(k); }
+  var json=JSON.stringify(data, function(k,v){ return v instanceof Uint8Array ? {__u8:u8ToB64(v)} : v; });
+  var zip=new JSZip(); zip.file('backup.json', json);
+  var blob=await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
+  return { blob:blob, name:'앵커늘봄강사서류_백업_'+bkStamp()+'.zip', people:data.people.length };
+}
+function bkSaveCfg(){ kvPut('backupCfg', bkCfg); }
+function bkDone(){ bkCfg.last=Date.now(); bkCfg.lastDay=bkStamp(); bkSaveCfg(); bkStateText(); }
+async function bkDownload(auto){
+  if(bkBusy) return; bkBusy=true;
+  try{ var r=await bkMake(); await saveBlob(r.blob, r.name); bkDone(); if($('bkNowInfo')) $('bkNowInfo').textContent='강사 '+r.people+'명 · '+Math.round(r.blob.size/1024/1024*10)/10+'MB'; }
+  catch(e){ console.error(e); toast('백업하지 못했습니다: '+(e.message||e)); }
+  finally{ bkBusy=false; }
+}
+async function bkWriteFolder(){
+  if(!bkDir || bkBusy) return false;
+  try{ if((await bkDir.queryPermission({mode:'readwrite'}))!=='granted'){ bkStateText('폴더 다시 연결 필요'); return false; } }catch(e){ return false; }
+  bkBusy=true;
+  try{
+    var r=await bkMake(), fh=await bkDir.getFileHandle(r.name, {create:true}), w=await fh.createWritable();
+    await w.write(r.blob); await w.close();
+    // 최근 14일치만 남기기
+    var names=[]; for await (const [n, h] of bkDir.entries()){ if(h.kind==='file' && /^앵커늘봄강사서류_백업_\d{4}-\d{2}-\d{2}\.zip$/.test(n)) names.push(n); }
+    names.sort(); while(names.length>14){ try{ await bkDir.removeEntry(names.shift()); }catch(e){ break; } }
+    bkDone(); return true;
+  }catch(e){ console.error(e); bkStateText('자동 백업 실패'); return false; }
+  finally{ bkBusy=false; }
+}
+function bkDirty(){
+  if(!bkReady || bkCfg.mode==='off') return;
+  clearTimeout(bkTimer);
+  bkTimer=setTimeout(function(){
+    if(bkCfg.mode==='folder') bkWriteFolder();
+    else if(bkCfg.mode==='download' && bkCfg.lastDay!==bkStamp()) bkDownload(true);
+  }, 120000);
+}
+function bkStateText(warn){
+  var el=$('bkState'), b=$('btnBackup'); if(!el) return;
+  var t, w=false;
+  if(warn){ t=warn; w=true; }
+  else if(!bkCfg.last){ t = people.some(function(p){ return p.name.trim(); }) ? '백업한 적 없음 · 눌러서 백업' : '백업한 적 없음'; w=people.length>1; }
+  else { var d=new Date(bkCfg.last), days=(Date.now()-bkCfg.last)/864e5; t='마지막 백업 '+(d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); if(bkCfg.mode==='off' && days>7){ t+=' · 7일 지남'; w=true; } }
+  if(bkCfg.mode!=='off' && !warn) t+=' · 자동('+(bkCfg.mode==='folder'?'폴더':'내려받기')+')';
+  el.textContent=t; b.classList.toggle('warn', w);
+}
+async function bkRestore(file){
+  var info=$('bkRestoreInfo');
+  try{
+    info.textContent='읽는 중…';
+    var u=new Uint8Array(await file.arrayBuffer()), json;
+    if(u[0]===0x50 && u[1]===0x4b){ var z=await JSZip.loadAsync(u), f=z.file('backup.json'); if(!f) throw new Error('백업 파일이 아닙니다'); json=await f.async('string'); }
+    else json=new TextDecoder().decode(u);
+    var data=JSON.parse(json, function(k,v){ return v && typeof v==='object' && typeof v.__u8==='string' ? b64ToU8(v.__u8) : v; });
+    if(data.app!=='anchor-lecturer-docs' || !Array.isArray(data.people)) throw new Error('이 프로그램의 백업 파일이 아닙니다');
+    var how=(document.querySelector('[name=bkHow]:checked')||{}).value||'merge';
+    var msg=(data.created||'').slice(0,10)+' 백업 · 강사 '+data.people.length+'명을 '+(how==='replace'?'덮어씁니다(지금 강사 '+people.length+'명은 지워짐)':'합칩니다');
+    if(!confirm(msg+'. 계속할까요?')){ info.textContent='취소했습니다'; return; }
+    var add=0, upd=0;
+    if(how==='replace'){
+      people.slice().forEach(function(p){ dbDel(p.id); }); people=[];
+      data.people.forEach(function(p){ dbPut(p); people.push(p); add++; });
+      for(const k of BK_KEYS){ if(data.kv[k]!=null) kvPut(k, data.kv[k]); }
+    } else {
+      data.people.forEach(function(p){
+        var n=String(p.name||'').replace(/\s/g,''), ex=people.filter(function(x){ return x.id===p.id || (n && x.name.replace(/\s/g,'')===n); })[0];
+        if(!ex){ dbPut(p); people.push(p); add++; }
+        else if((p.updated||0)>(ex.updated||0)){ p.id=ex.id; dbPut(p); people[people.indexOf(ex)]=p; upd++; }
+      });
+      var kv=data.kv||{};
+      if(kv.ops && kv.ops.rows && !(ops && ops.rows && ops.rows.length)) kvPut('ops', kv.ops);
+      if(kv.contacts) kvPut('contacts', Object.assign({}, kv.contacts, contacts));
+      if(kv.sent) kvPut('sent', Object.assign({}, kv.sent, sent));
+      if(kv.mailCfg && !(await kvGet('mailCfg'))) kvPut('mailCfg', kv.mailCfg);
+      if(kv.settings && !(await kvGet('settings'))) kvPut('settings', kv.settings);
+    }
+    info.textContent='복원했습니다 (새로 '+add+'명'+(upd?', 바꿈 '+upd+'명':'')+'). 화면을 다시 불러옵니다…';
+    setTimeout(function(){ location.reload(); }, 900);
+  }catch(e){ console.error(e); info.textContent='복원하지 못했습니다: '+(e.message||e); }
+}
+function bkRenderDlg(){
+  each('[name=bkMode]', function(r){ r.checked = r.value===bkCfg.mode; });
+  var fsOk='showDirectoryPicker' in window;
+  $('bkOptFolder').style.opacity=fsOk?'':'.5';
+  $('bkDirName').textContent = !fsOk ? '이 화면에서는 폴더 저장이 안 됩니다(깃허브 화면 Chrome·Edge에서 가능)' : bkDir ? '폴더: '+bkDir.name : '아직 고르지 않음';
+}
+async function bkPickFolder(){
+  try{ bkDir=await window.showDirectoryPicker({id:'anchor-backup', mode:'readwrite', startIn:'documents'}); kvPut('backupDir', bkDir); bkCfg.mode='folder'; bkSaveCfg(); bkRenderDlg(); await bkWriteFolder(); toast('폴더에 백업했습니다: '+bkDir.name); }
+  catch(e){ if(e && e.name==='AbortError') return; toast('폴더를 쓸 수 없습니다: '+(e.message||e)); }
+}
+function bindBackup(){
+  $('btnBackup').onclick=async function(){
+    // 폴더 권한이 풀렸으면 이 클릭으로 다시 받기
+    if(bkCfg.mode==='folder' && bkDir){ try{ if((await bkDir.queryPermission({mode:'readwrite'}))!=='granted' && (await bkDir.requestPermission({mode:'readwrite'}))==='granted'){ bkStateText(); bkWriteFolder(); } }catch(e){} }
+    bkRenderDlg(); $('backupDlg').classList.add('on');
+  };
+  $('bkClose').onclick=function(){ $('backupDlg').classList.remove('on'); };
+  $('bkNow').onclick=function(){ bkDownload(false); };
+  $('bkPick').onclick=function(e){ e.preventDefault(); bkPickFolder(); };
+  each('[name=bkMode]', function(r){ r.onchange=function(){
+    if(r.value==='folder' && !('showDirectoryPicker' in window)){ toast('이 화면에서는 폴더 저장이 안 됩니다. 깃허브 화면(Chrome·Edge)에서 쓰거나 「하루 한 번 자동 내려받기」를 고르세요'); bkRenderDlg(); return; }
+    bkCfg.mode=r.value; bkSaveCfg();
+    if(r.value==='folder' && !bkDir) bkPickFolder();
+    bkStateText();
+  }; });
+  $('bkRestoreBtn').onclick=function(){ $('bkFile').click(); };
+  $('bkFile').onchange=function(){ var f=$('bkFile').files[0]; $('bkFile').value=''; if(f) bkRestore(f); };
+}
+async function bkInit(){
+  var c=await kvGet('backupCfg'); if(c) bkCfg=Object.assign(bkCfg, c);
+  try{ bkDir=await kvGet('backupDir'); }catch(e){ bkDir=null; }
+  bkReady=true;
+  if(bkCfg.mode==='folder'){
+    if(!bkDir) bkStateText('자동 백업 폴더를 골라 주세요');
+    else { try{ if((await bkDir.queryPermission({mode:'readwrite'}))!=='granted') bkStateText('눌러서 백업 폴더 다시 연결'); else bkStateText(); }catch(e){ bkStateText('눌러서 백업 폴더 다시 연결'); } }
+  } else bkStateText();
 }
 
 /* ---------- PDF 용량 줄이기 ----------
@@ -1771,7 +1918,7 @@ function toast(t){ var el=$('toast'); el.textContent=t; el.classList.add('on'); 
 
 /* ---------- 시작 ---------- */
 mailCfg=JSON.parse(JSON.stringify(DEFAULT_MAIL));
-buildRows(); buildImgs(); buildPdfs(); bind(); bindImport(); bindOpsMail();
+buildRows(); buildImgs(); buildPdfs(); bind(); bindImport(); bindOpsMail(); bindBackup();
 var startPage='info'; try{ var sp=localStorage.getItem('lecDocsPage'); if(PAGES.indexOf(sp)>=0) startPage=sp; }catch(e){}
 go(startPage);
 openDb().then(async function(){
@@ -1786,6 +1933,7 @@ openDb().then(async function(){
   people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p); });
   cur = people.sort(function(a,b){return (b.updated||0)-(a.updated||0);})[0] || newPerson();
   renderAll(); go(page);
+  bkInit();
 });
 getDownloads();
 })();

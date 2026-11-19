@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         앵커늘봄 강사서류 → 호서대 메일 보내기
 // @namespace    https://hoseoican.github.io/hoseo_docs/
-// @version      0.1.0
+// @version      0.2.0
 // @description  강사서류 작성 프로그램의 「학교 메일로 보내기」를 누르면 호서대 웹메일 쓰기 창에 받는 사람·제목·본문·ZIP 첨부를 채웁니다.
 // @match        https://hoseoican.github.io/hoseo_docs/*
 // @match        https://mail.hoseo.edu/*
@@ -16,7 +16,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  var VERSION = '0.1.0';
+  var VERSION = '0.2.0';
   var MAIL_HOME = 'https://mail.hoseo.edu/mail/allmail';
   var JOB_TTL = 20 * 60 * 1000; // 20분 지난 작업은 버림
 
@@ -29,7 +29,7 @@
       if (e.origin !== location.origin || !d || d.type !== 'hs-mail-send') return;
       try {
         var b64 = bufToB64(d.data);
-        GM_setValue('hsJob', { id: d.id, school: d.school, names: d.names, to: d.to, toName: d.toName, subject: d.subject, body: d.body,
+        GM_setValue('hsJob', { id: d.id, school: d.school, names: d.names, to: d.to, toName: d.toName, subject: d.subject, body: d.body, bodyHtml: d.bodyHtml || '',
           fileName: d.fileName, data: b64, auto: !!d.auto, created: Date.now(), state: 'new' });
         GM_deleteValue('hsResult');
         GM_openInTab(MAIL_HOME, { active: true, insert: true });
@@ -122,7 +122,7 @@
 
     var body = await waitFor(editorBody, 8000);
     if (body) {
-      var html = esc(job.body).split('\n').map(function (l) { return '<p>' + (l || '<br>') + '</p>'; }).join('');
+      var html = job.bodyHtml || esc(job.body).split('\n').map(function (l) { return '<div>' + (l || '<br>') + '</div>'; }).join('');
       body.focus();
       body.insertAdjacentHTML('afterbegin', html);
       body.dispatchEvent(new Event('input', { bubbles: true }));

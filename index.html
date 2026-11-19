@@ -582,7 +582,7 @@
           <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">「메일 앱으로 열기」는 PC에 설정된 메일 프로그램을 엽니다. 열리지 않으면 받는 사람·제목·본문을 복사해 학교 메일(웹메일)에 붙여 넣으세요.<br>ZIP 파일은 메일에 직접 첨부해야 합니다. 용량이 크면 대용량 첨부로 올라갑니다.</span></span></div>
         <details class="tpl" id="tplBox"><summary>메일 템플릿 고치기</summary><div class="inner">
           <label class="fld" style="margin:8px 0"><span>제목</span><input type="text" id="tSubj" autocomplete="off"></label>
-          <label class="fld"><span>본문</span><textarea id="tBody"></textarea></label>
+          <label class="fld"><span>본문 <small style="font-weight:400;color:#888">— **글자** 처럼 별표 두 개로 감싸면 굵게</small></span><textarea id="tBody"></textarea></label>
           <div class="ph-list" id="phList"></div>
           <div class="row" style="margin:0"><button type="button" class="ghost sm" id="btnTplReset">기본값 복원</button><span class="hint">고친 템플릿은 이 브라우저에 기억됩니다</span></div>
         </div></details>
@@ -682,6 +682,7 @@
 <script src="cfb.min.js"></script>
 <script src="pako.min.js"></script>
 <script src="jszip.min.js"></script>
+<script src="pdf-lib.min.js"></script>
 <script src="hwpcore.js"></script>
 <script src="forms.js"></script>
 <script src="importer.js"></script>
@@ -690,7 +691,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.19-19';
+var APP_VERSION = '2026.11.19-21';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -720,7 +721,7 @@ var PDFS = [
   {k:'exam', no:'4-1', t:'채용신체검사서', need:true},
   {k:'tb', no:'4-2', t:'잠복결핵 검사 확인서', need:true},
   {k:'grad', no:'5', t:'최종학력 졸업증명서', need:true},
-  {k:'cert', no:'6', t:'자격증 사본 및 경력증명서', need:false, multi:true}
+  {k:'cert', no:'6', t:'자격증 사본 및 경력증명서', need:false, multi:true, dir:'6. 경력증명서, 자격증 사본 스캔본'}
 ];
 var ROWS = [
   {k:'edu', t:'학력', f:[['period','기간','2010. 3.~2014. 2.'],['school','학교명','호서대학교'],['major','전공','']]},
@@ -788,15 +789,101 @@ function buildPdfs(){
       var list=[];
       for(var i=0;i<inp.files.length;i++){ var f=inp.files[i]; list.push({name:f.name, type:f.type, data:new Uint8Array(await f.arrayBuffer())}); }
       var meta=PDFS.filter(function(p){return p.k===k;})[0];
+      inp.value=''; toast('PDF 용량 줄이는 중…');
+      await shrinkPdfList(list);
       cur.pdfs[k] = meta.multi ? (cur.pdfs[k]||[]).concat(list) : list.slice(0,1);
-      inp.value=''; save(); renderPdfs(); refresh();
+      save(); renderPdfs(); refresh(); toast('PDF를 넣었습니다');
     };
   });
 }
 
+/* ---------- PDF 용량 줄이기 ----------
+   스캔 PDF 안의 JPEG 그림을 긴 변 1600px·쪽당 240만 화소(A4 약 160dpi)·화질 70%로 다시 저장한다.
+   글자 PDF는 거의 그대로이고, 줄어들지 않으면 원본을 쓴다. */
+var PDF_MAX=1600, PDF_Q=0.7, PAGE_PX=2.4e6;
+async function shrinkPdf(bytes){
+  if(!window.PDFLib || !bytes || bytes.length<300000) return bytes;
+  var L=PDFLib, N=function(n){ return L.PDFName.of(n); };
+  try{
+    var doc=await L.PDFDocument.load(bytes, {updateMetadata:false});
+    // 쪽마다 그림 화소 합이 A4 약 160dpi(240만 화소)를 넘으면 그 쪽 그림을 함께 줄인다(조각 그림 스캔본 대비)
+    var scaleOf={};
+    doc.getPages().forEach(function(pg){
+      try{
+        var res=pg.node.Resources(); if(!res) return;
+        var xo=res.lookup(N('XObject')); if(!(xo instanceof L.PDFDict)) return;
+        var refs=[], px=0;
+        xo.entries().forEach(function(e){ var r=e[1]; if(!(r instanceof L.PDFRef)) return; var o=doc.context.lookup(r);
+          if(!(o instanceof L.PDFRawStream) || o.dict.get(N('Subtype'))!==N('Image')) return;
+          px+=o.dict.lookup(N('Width')).asNumber()*o.dict.lookup(N('Height')).asNumber(); refs.push(r.toString()); });
+        var sp=px ? Math.min(1, Math.sqrt(PAGE_PX/px)) : 1;
+        refs.forEach(function(k){ scaleOf[k]=Math.min(scaleOf[k]==null?1:scaleOf[k], sp); });
+      }catch(e){}
+    });
+    var changed=0, list=doc.context.enumerateIndirectObjects();
+    for(var k=0;k<list.length;k++){
+      var ref=list[k][0], obj=list[k][1];
+      if(!(obj instanceof L.PDFRawStream)) continue;
+      var d=obj.dict;
+      if(d.get(N('Subtype'))!==N('Image')) continue;
+      var f=d.get(N('Filter')); if(f instanceof L.PDFArray){ if(f.size()!==1) continue; f=f.get(0); }
+      if(f!==N('DCTDecode') || d.get(N('Decode'))) continue;
+      var raw=obj.contents, ps=scaleOf[ref.toString()]; ps=ps==null?1:ps;
+      if(raw.length<40000 && ps>0.9) continue;
+      var bmp; try{ bmp=await createImageBitmap(new Blob([raw],{type:'image/jpeg'})); }catch(e){ continue; }
+      var sc=Math.min(1, ps, PDF_MAX/Math.max(bmp.width,bmp.height)), w=Math.max(1,Math.round(bmp.width*sc)), h=Math.max(1,Math.round(bmp.height*sc));
+      var c=document.createElement('canvas'); c.width=w; c.height=h; var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,w,h); x.drawImage(bmp,0,0,w,h); bmp.close&&bmp.close();
+      var nb=new Uint8Array(await (await canvasBlob(c,'image/jpeg',PDF_Q)).arrayBuffer());
+      if(nb.length > raw.length*0.85) continue;
+      var nd=d.clone(doc.context);
+      nd.set(N('Width'), L.PDFNumber.of(w)); nd.set(N('Height'), L.PDFNumber.of(h));
+      nd.set(N('ColorSpace'), N('DeviceRGB')); nd.set(N('BitsPerComponent'), L.PDFNumber.of(8));
+      nd.set(N('Filter'), N('DCTDecode')); nd.delete(N('DecodeParms')); nd.set(N('Length'), L.PDFNumber.of(nb.length));
+      doc.context.assign(ref, L.PDFRawStream.of(nd, nb)); changed++;
+    }
+    if(!changed) return bytes;
+    var out=await doc.save({useObjectStreams:true});
+    return out.length < bytes.length*0.95 ? out : bytes;
+  }catch(e){ console.warn('PDF 줄이기 건너뜀', e); return bytes; }
+}
+// 저장된 PDF 한 묶음 줄이기 (한 번 줄인 파일은 표시해 두고 다시 하지 않음)
+async function shrinkPdfList(arr){
+  var ch=false;
+  for(const f of (arr||[])){
+    if(f.shrunk || !/\.pdf$/i.test(f.name||'')) { continue; }
+    var nb=await shrinkPdf(f.data); f.shrunk=true; ch=true;
+    if(nb!==f.data){ f.orig=f.orig||f.data.length; f.data=nb; }
+  }
+  return ch;
+}
+async function shrinkPersonPdfs(p){ var ch=false; for(const k of Object.keys(p.pdfs||{})){ if(await shrinkPdfList(p.pdfs[k])) ch=true; } if(ch){ p.updated=p.updated||Date.now(); dbPut(p); } return ch; }
+
 /* ---------- 이미지 손질 ---------- */
 function loadImage(blob){ return new Promise(function(res,rej){ var u=URL.createObjectURL(blob), im=new Image(); im.onload=function(){ res(im); }; im.onerror=function(){ URL.revokeObjectURL(u); rej(new Error('이미지를 열 수 없습니다. JPG·PNG로 저장해서 다시 올려 주세요 (아이폰 HEIC는 안 열립니다)')); }; im.src=u; }); }
 function canvasBlob(c, type, q){ return new Promise(function(res){ c.toBlob(res, type, q); }); }
+// 서명은 인쇄 폭 24mm 정도라 긴 변 600px이면 충분하다(용량 줄이기)
+var SIGN_MAX=600;
+function fitCanvas(c, max){ var sc=Math.min(1, max/Math.max(c.width,c.height)); if(sc>=1) return c; var d=document.createElement('canvas'); d.width=Math.max(1,Math.round(c.width*sc)); d.height=Math.max(1,Math.round(c.height*sc)); var x=d.getContext('2d'); x.imageSmoothingQuality='high'; x.drawImage(c,0,0,d.width,d.height); return d; }
+// 예전에 저장된 큰 서명·신분증·통장 그림 줄이기
+async function shrinkStoredImgs(p){
+  var ch=false;
+  for(const k of ['sign','idcard','bank']){
+    var v=p.imgs&&p.imgs[k]; if(!v || !v.data) continue;
+    var max = k==='sign' ? SIGN_MAX : 1800;
+    if(Math.max(v.pxW||0, v.pxH||0) <= max && v.data.length < (k==='sign'?250000:900000)) continue;
+    try{
+      var bmp=await createImageBitmap(new Blob([v.data],{type:v.ext==='png'?'image/png':'image/jpeg'}));
+      var c=document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height; var x=c.getContext('2d');
+      if(k!=='sign'){ x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); }
+      x.drawImage(bmp,0,0); c=fitCanvas(c, max);
+      var b = k==='sign' ? await canvasBlob(c,'image/png') : await canvasBlob(c,'image/jpeg',0.85);
+      var nd=new Uint8Array(await b.arrayBuffer());
+      if(nd.length < v.data.length){ p.imgs[k]={ data:nd, ext:k==='sign'?'png':'jpg', pxW:c.width, pxH:c.height }; ch=true; }
+    }catch(e){}
+  }
+  if(ch) dbPut(p);
+  return ch;
+}
 async function processImage(kind, file){
   var im = await loadImage(file), W=im.naturalWidth, H=im.naturalHeight, c=document.createElement('canvas'), x=c.getContext('2d');
   if(kind==='sign'){
@@ -811,6 +898,7 @@ async function processImage(kind, file){
     x.putImageData(d,0,0);
     if(maxX>minX && maxY>minY){ var m=6; minX=Math.max(0,minX-m); minY=Math.max(0,minY-m); maxX=Math.min(c.width-1,maxX+m); maxY=Math.min(c.height-1,maxY+m);
       var c2=document.createElement('canvas'); c2.width=maxX-minX+1; c2.height=maxY-minY+1; c2.getContext('2d').drawImage(c,minX,minY,c2.width,c2.height,0,0,c2.width,c2.height); c=c2; }
+    c=fitCanvas(c, SIGN_MAX);
     return { blob: await canvasBlob(c,'image/png'), ext:'png', pxW:c.width, pxH:c.height };
   }
   if(kind==='photo'){
@@ -962,6 +1050,7 @@ function pv(p, school){ return { '성명':p.name.trim()||'성명', '구분':p.ro
 function subject(p){ var o=p.rename&&p.rename.zip; return cleanFile(o || fillName(namesCfg().person, pv(p))) || '강사서류'; }
 function formName(p, f, school){ var o=p.rename&&p.rename['f'+f.no]; return cleanFile(fillName(o || namesCfg().forms[f.no] || formBase(f), pv(p, school))) + formExt(f); }
 function pdfName(p, m, i, n, ext){ var o=p.rename&&p.rename['p:'+m.k+':'+i]; var v=pv(p); v['번호']=m.no; v['서류명']=m.t; return cleanFile(o || (fillName(namesCfg().pdf, v)+(n>1?'_'+(i+1):''))) + ext; }
+function pdfDirName(p, m){ return cleanFile(m.dir || (m.no+'. '+m.t+' 스캔본')); }
 function checks(p){
   var out=[], rrn=(p.rrn||'').replace(/\D/g,''), sch=schoolsOf(p);
   function add(sec, lv, t){ out.push({sec:sec, lv:lv, t:t}); }
@@ -994,7 +1083,15 @@ function plan(p, only){
   });
   PDFS.forEach(function(m){ (p.pdfs[m.k]||[]).forEach(function(file,i,arr){
     var ext=(file.name.match(/\.[a-z0-9]+$/i)||['.pdf'])[0].toLowerCase();
-    files.push({pdf:file, key:'p:'+m.k+':'+i, path: root+pdfName(p, m, i, arr.length, ext)});
+    // 자격증 사본·경력증명서처럼 여러 장이면 한 폴더에 모은다
+    if(m.multi){
+      // 자격증 사본·경력증명서는 「스캔본」 폴더에 올린 파일 이름 그대로 모은다
+      var o=p.rename&&p.rename['p:'+m.k+':'+i], base=String(file.name||'').replace(/\.[a-z0-9]+$/i,'');
+      var nm=cleanFile(o || base || (m.t+'_'+(i+1)));
+      var used=files.filter(function(x){ return x.dirKey===m.k; }).map(function(x){ return x.path; }), path=root+pdfDirName(p, m)+'/'+nm+ext, n=2;
+      while(used.indexOf(path)>=0){ path=root+pdfDirName(p, m)+'/'+nm+'_'+(n++)+ext; }
+      files.push({pdf:file, key:'p:'+m.k+':'+i, dirKey:m.k, path:path});
+    } else files.push({pdf:file, key:'p:'+m.k+':'+i, path: root+pdfName(p, m, i, arr.length, ext)});
   }); });
   return files;
 }
@@ -1084,6 +1181,7 @@ async function addPersonFiles(zip, p, only, prefix, warns){
   var imgs={}; Object.keys(p.imgs).forEach(function(k){ var v=p.imgs[k]; imgs[k]={bytes:v.data, ext:v.ext, pxW:v.pxW, pxH:v.pxH}; });
   var d={ name:p.name.trim(), rrn:p.rrn, phone:p.phone, address:p.address, email:p.email, date:p.date, police:(p.police||'').trim(), programs:(p.programs||'').trim(),
     edu:p.edu, career:p.career, cert:p.cert };
+  await shrinkPersonPdfs(p); await shrinkStoredImgs(p);
   for(const f of plan(p, only)){
     if(f.pdf){ zip.file((prefix||'')+f.path, f.pdf.data); continue; }
     var tpl=b64(TEMPLATES[f.form.file]);
@@ -1391,7 +1489,8 @@ function renderMyOps(){
 /* ---------- 학교별 메일 ---------- */
 var DEFAULT_MAIL = {
   subject: '[호서대학교 앵커늘봄] {학교명} 늘봄학교 강사 계약 서류 송부 ({강사수}명)',
-  body: '{담당자} 선생님께\n\n안녕하십니까. 호서대학교 앵커늘봄총괄센터 {보내는사람}입니다.\n{학교명}에 배치된 늘봄학교 프로그램 강사의 계약 서류를 아래와 같이 보내 드립니다.\n\n■ 강사 및 프로그램 ({강사수}명)\n{강사목록}\n\n■ 첨부 파일\n{첨부목록}\n  - 강사별 폴더에 범죄경력조회 동의서, 이력서, 신분증·통장 사본, 개인정보 동의서, 서약서, 채용신체검사서·잠복결핵 검사 확인서 등이 들어 있습니다.\n  - 개인정보가 들어 있는 자료이니 확인 후 안전하게 보관·파기해 주시기 바랍니다.\n\n검토하시고 보완이 필요한 서류가 있으면 회신 부탁드립니다.\n감사합니다.\n\n{날짜}\n호서대학교 앵커늘봄총괄센터\n{보내는사람} · {보내는사람연락처} · {보내는사람이메일}',
+  body: "안녕하세요, 선생님.\n앵커늘봄총괄센터입니다.\n\n**2학기 학급별 운영목록 및 강사 제출서류 송부드립니다.**\n\n학급별 확정 인원 확인이 가능하신 경우에는 운영목록 파일내 학급인원 노랑색음영 수정 후 본 메일로 회신 부탁드립니다.\n\n■ 강사 제출서류\n\n※ 교육부 길라잡이 기준\n\n* 공통: 범죄경력조회·행정정보 공동이용 동의서, 이력서, 채용신체검사서(흉부 방사선 포함), 잠복결핵검사 확인서\n* 주강사 추가: 최종학력증명서(필수), 경력증명서, 자격증 사본\n\n■ 2학기 운영 안내\n\n**1. 배치 및 계약**\n   강사료는 운영기관(대학)에서 지급하므로 **별도 계약은 진행하지 않으셔도 됩니다.**\n**2. 온라인 출석부 진행**\n   여름방학 기간부터 학생 출석 관리는 종이 출석부 대신 **호서대학교 앵커늘봄 온라인 플랫폼**을 통해 진행 되고 있습니다.\n   학생 등록 및 출석확인은 강사님께서 직접 진행해 주실 예정이며, 출석부명단을 전달부탁드리겠습니다.\n   기관에서 별도의 출석부 제출을 요청하시는 경우에는 **온라인 플랫폼의 출석부를 출력하여 전달드리겠습니다.**\n\n**2. 서류 및 범죄전력 조회**\n   배치된 강사의 관련 서류도 함께 송부드립니다. **성범죄 및 아동학대 관련 범죄전력 조회 진행** 부탁드립니다.\n\n**3. 강사 출근부 제출(필수)**\n   강사가 배치된 학급은 출근 확인 및 당월 산재보험 신고를 위해 **출근부 스캔본을 매월 다음 달 첫째 주 월요일 18:00** 또는 **당월 수업 종료후 1주일 내** 제출해 주시기 바랍니다.\n   예) 9월 근무 종료 후 10월 첫째주 월요일 18:00까지 제출.\n   예) 또는 9월 17일(목)에 9월 수업 종료 시 9월 24일(목)출근부 스캔본 제출 요청.\n\n* 자체 양식 사용 가능\n* 필수항목: 근무일자·근무시간·프로그램명·강사 및 학교 담당자 자필서명\n* 제출처: jihun@hoseo.edu\n\n붙임파일 확인 후 이상이 있거나 추가 확인이 필요한 사항은 연락 부탁드립니다.\n\n감사합니다.\n\n앵커늘봄총괄센터 드림",
+  ver: 2,
   sender: { name: '', tel: '041-423-2427', email: '' }
 };
 var PLACEHOLDERS = [['학교명','받는 학교·기관 이름'],['담당자','담당자 이름 (없으면 「담당」)'],['강사수','고른 강사 수'],['강사목록','강사·구분·프로그램·기간 목록'],['첨부목록','ZIP 파일 이름과 강사 폴더'],['날짜','오늘 날짜'],['보내는사람','보내는 사람 이름·직함'],['보내는사람연락처','보내는 사람 연락처'],['보내는사람이메일','보내는 사람 이메일']];
@@ -1445,12 +1544,29 @@ function renderMail(){
   renderMailPreview();
 }
 function pickedOf(school){ return mailPeopleOf(school).filter(function(x){ return x.person && mailPick[school+'|'+x.name]; }); }
+// 본문 템플릿의 **글자** 는 굵게 (복사·메일 앱에는 별표 없이 들어감)
+function mailHtml(t){ return esc(t).replace(/\*\*([^*\n]+?)\*\*/g,'<b>$1</b>'); }
+// 복사: 굵은 글씨까지(서식 복사) → 안 되면 글자만 → 그래도 안 되면 화면에서 선택해 복사
+function copyBySelect(el){
+  try{ var r=document.createRange(); r.selectNodeContents(el); var sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); var ok=document.execCommand('copy'); sel.removeAllRanges(); return ok; }catch(e){ return false; }
+}
+function copyEl(el){
+  var text=el.innerText||el.textContent, html=el.innerHTML.replace(/\n/g,'<br>');
+  function done(){ toast('복사했습니다. 메일 본문에 붙여 넣으세요 (Ctrl+V)'); }
+  function fail(){ if(copyBySelect(el)) done(); else toast('복사가 막혀 있습니다. 본문을 직접 선택해서 복사해 주세요'); }
+  try{
+    if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write && el.id==='mailBody'){
+      navigator.clipboard.write([new ClipboardItem({'text/html':new Blob(['<div style="white-space:pre-wrap">'+html+'</div>'],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]).then(done, function(){ navigator.clipboard.writeText(text).then(done, fail); });
+    } else if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fail);
+    else fail();
+  }catch(e){ fail(); }
+}
 function renderMailPreview(){
   var picked=pickedOf(mailSchool);
   if($('btnMarkSent')) $('btnMarkSent').textContent = picked.length && picked.every(function(x){ return sentOf(mailSchool, x.name); }) ? '발송 표시 취소' : '보냄으로 표시';
   var v=mailValues(mailSchool, picked), c=contacts[mailSchool]||{};
   var to=c.email ? ((c.name?c.name+' ':'')+'<'+c.email+'>') : '(담당자 이메일을 넣어 주세요)';
-  $('mTo').textContent=to; $('mSubj').textContent=fillTpl(mailCfg.subject, v); $('mailBody').textContent=fillTpl(mailCfg.body, v);
+  $('mTo').textContent=to; $('mSubj').textContent=fillTpl(mailCfg.subject, v); $('mailBody').innerHTML=mailHtml(fillTpl(mailCfg.body, v));
   $('mCount').textContent=picked.length+'명 선택';
   $('mMailto').href='mailto:'+encodeURIComponent(c.email||'')+'?subject='+encodeURIComponent($('mSubj').textContent)+'&body='+encodeURIComponent($('mailBody').textContent);
   $('btnSchoolZip').disabled=!picked.length; if($('btnBridge')) $('btnBridge').disabled=!picked.length; bridgeStateText(); if($('bridgeAuto')) $('bridgeAuto').checked=!!mailCfg.autoSend;
@@ -1474,7 +1590,7 @@ async function bridgeSend(){
   try{
     var warns=[], blob=await schoolZipBlob(picked, warns), buf=await blob.arrayBuffer();
     window.postMessage({ type:'hs-mail-send', id:String(Date.now()), school:mailSchool, names:picked.map(function(x){ return x.name; }),
-      to:c.email, toName:c.name||'', subject:$('mSubj').textContent, body:$('mailBody').textContent,
+      to:c.email, toName:c.name||'', subject:$('mSubj').textContent, body:$('mailBody').textContent, bodyHtml:mailHtml(fillTpl(mailCfg.body, mailValues(mailSchool, picked))).split('\n').map(function(l){ return '<div>'+(l.replace(/^ +/, function(m){ return m.replace(/ /g,'&nbsp;'); })||'<br>')+'</div>'; }).join(''),
       fileName:schoolZipName(mailSchool, picked.length), data:buf, auto:!!mailCfg.autoSend }, (location.protocol==='file:' || location.origin==='null') ? '*' : location.origin);
     toast('학교 메일 쓰기 창을 엽니다 ('+Math.round(buf.byteLength/1024/1024*10)/10+'MB)'+(warns.length?' · '+warns.join(', '):''));
   }catch(e){ console.error(e); toast('만들지 못했습니다: '+(e.message||e)); }
@@ -1531,7 +1647,7 @@ function bindOpsMail(){
   };
   $('stQ').addEventListener('input', renderStatus);
   each('label', function(l){ l.onclick=function(){ stView=l.dataset.v; renderStatus(); }; }, $('stView'));
-  each('[data-copy]', function(b){ b.onclick=function(){ var t=$(b.dataset.copy).textContent; try{ navigator.clipboard.writeText(t).then(function(){ toast('복사했습니다'); }, function(){ toast('복사가 막혀 있습니다. 직접 선택해 주세요'); }); }catch(e){ toast('복사가 막혀 있습니다. 직접 선택해 주세요'); } }; });
+  each('[data-copy]', function(b){ b.onclick=function(){ copyEl($(b.dataset.copy)); }; });
 }
 
 /* ---------- 서류 불러오기 ---------- */
@@ -1581,13 +1697,13 @@ async function importFiles(list){
         if(opsLoaded() && (target.name||r.name)) schNote='운영 목록에 없는 강사라 서류에 적힌 학교명을 그대로 넣었습니다. 출강 학교를 확인해 주세요';
       }
       var imgNames={sign:'서명',photo:'사진',idcard:'신분증',bank:'통장'};
-      for(const k of Object.keys(r.imgs)){ if(!target.imgs[k]){ target.imgs[k] = (k==='sign'||k==='photo') ? await normalizeImg(k, r.imgs[k]) : r.imgs[k]; got.push(imgNames[k]); } }
+      for(const k of Object.keys(r.imgs)){ if(!target.imgs[k]){ target.imgs[k] = await normalizeImg(k, r.imgs[k]); got.push(imgNames[k]); } }
       var pdfN=0;
       Object.keys(r.pdfs).forEach(function(k){
         var have=(target.pdfs[k]||[]).map(function(f){return f.name;}), meta=PDFS.filter(function(p){return p.k===k;})[0];
         r.pdfs[k].forEach(function(f){ if(have.indexOf(f.name)>=0) return; if(!meta.multi && (target.pdfs[k]||[]).length) return; (target.pdfs[k]=target.pdfs[k]||[]).push({name:f.name,type:f.type,data:f.data}); pdfN++; });
       });
-      if(pdfN) got.push('PDF '+pdfN+'개');
+      if(pdfN){ $('impText').textContent='PDF 용량 줄이는 중… ('+(target.name||'')+')'; await shrinkPersonPdfs(target); got.push('PDF '+pdfN+'개'); }
       if(r.examDate && !target.examDate){ target.examDate=r.examDate; got.push('검진일'+(r.examGuess?'(월만)':'')); }
       target.updated=Date.now(); dbPut(target); lastTarget=target;
       var notes=r.notes.slice(); if(schNote) notes.unshift(schNote);
@@ -1660,7 +1776,7 @@ openDb().then(async function(){
   settings.names = Object.assign(JSON.parse(JSON.stringify(DEFAULT_NAMES)), settings.names||{});
   var ct=await kvGet('contacts'); if(ct) contacts=ct;
   var sn=await kvGet('sent'); if(sn) sent=sn;
-  var mc=await kvGet('mailCfg'); if(mc) mailCfg=Object.assign(JSON.parse(JSON.stringify(DEFAULT_MAIL)), mc);
+  var mc=await kvGet('mailCfg'); if(mc){ if(!mc.ver || mc.ver<DEFAULT_MAIL.ver){ mc.body=DEFAULT_MAIL.body; mc.ver=DEFAULT_MAIL.ver; } mailCfg=Object.assign(JSON.parse(JSON.stringify(DEFAULT_MAIL)), mc); }
   people = await dbAll();
   people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p); });
   cur = people.sort(function(a,b){return (b.updated||0)-(a.updated||0);})[0] || newPerson();

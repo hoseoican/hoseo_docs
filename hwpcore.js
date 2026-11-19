@@ -174,7 +174,9 @@
     w16(bd, 0, 0x0021); w16(bd, 2, sid); w16(bd, 4, ext.length);
     for (var k = 0; k < ext.length; k++) w16(bd, 6 + k * 2, ext.charCodeAt(k));
     var last = -1; di.forEach(function (r, n) { if (r.tag === T.BIN_DATA || r.tag === T.ID_MAPPINGS) last = n; });
-    di.splice(last + 1, 0, { tag: T.BIN_DATA, level: idm.level, data: bd });
+    // BIN_DATA 는 ID_MAPPINGS 아래 한 단계(level 1). 한글은 단계가 틀리면 「손상된 파일」로 본다
+    var lvl = idm.level + 1; di.forEach(function (r) { if (r.tag === T.BIN_DATA) lvl = r.level; });
+    di.splice(last + 1, 0, { tag: T.BIN_DATA, level: lvl, data: bd });
     var name = 'BIN' + ('000' + sid.toString(16).toUpperCase()).slice(-4) + '.' + ext;
     this.deps.CFB.utils.cfb_add(this.cfb, '/BinData/' + name, bytes);
     return count;

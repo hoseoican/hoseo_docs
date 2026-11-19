@@ -87,6 +87,7 @@
     if (/이력서/.test(b)) return { skip: '이력서' };
     if (/신분증|통장/.test(b)) return { skip: '신분증·통장 사본' };
     if (/동의서|서약서/.test(b)) return { skip: '동의서·서약서' };
+    if (/신체검사|채용신체|건강검진|검진결과/.test(b) && /결핵|IGRA/i.test(b)) return { k: 'exam', both: true };
     if (/신체검사|채용신체|건강검진|검진결과/.test(b)) return { k: 'exam' };
     if (/결핵|IGRA/i.test(b)) return { k: 'tb' };
     if (/졸업|학력|학위|재학|성적/.test(b)) return { k: 'grad' };
@@ -196,9 +197,15 @@
         if (slot.skip) { r.notes.push('「' + base(f.path) + '」: ' + slot.skip + ' 파일이 ' + ext.toUpperCase() + '라 내용을 읽을 수 없습니다. 직접 입력해 주세요'); continue; }
         var data = f.bytes, name = base(f.path);
         if (ext !== 'pdf') {
-          if (ext === 'png') { r.notes.push('「' + name + '」: PNG는 PDF로 바꾸지 못해 그대로 넣습니다'); }
-          else { data = jpegToPdf(f.bytes); name = name.replace(/\.(jpe?g)$/i, '.pdf'); r.notes.push('「' + base(f.path) + '」: 사진이라 PDF로 바꿔 넣었습니다'); }
+          var jpg = f.bytes;
+          if (ext === 'png') {
+            // PNG는 화면(브라우저)에서 JPEG로 바꾼 뒤 PDF로
+            if (env.imageToJpeg) { try { jpg = await env.imageToJpeg(f.bytes, 'image/png'); } catch (e) { jpg = null; } } else jpg = null;
+          }
+          if (jpg) { data = jpegToPdf(jpg); name = name.replace(/\.(jpe?g|png)$/i, '.pdf'); r.notes.push('「' + base(f.path) + '」: 이미지 파일을 PDF로 변환했습니다'); }
+          else r.notes.push('「' + name + '」: 이미지를 PDF로 변환하지 못해 원본 그대로 넣었습니다');
         }
+        if (slot.both) { r.tbIn41 = true; r.notes.push('「' + base(f.path) + '」: 채용신체검사서와 잠복결핵 검사 확인서가 한 파일에 있어 4-1에 넣고 4-2는 「4-1에 포함」으로 처리했습니다. 증빙서류(PDF) 화면의 「쪽 나누기」로 분리할 수 있습니다'); }
         (r.pdfs[slot.k] = r.pdfs[slot.k] || []).push({ name: name, type: 'application/pdf', data: data, from: f.path });
         if (slot.k === 'exam' && !r.examDate) {
           var dm = base(f.path).match(/(20\d{2})\s*[.\-년]\s*(\d{1,2})(?:\s*[.\-월]\s*(\d{1,2}))?/);

@@ -10,6 +10,8 @@
 // @grant        GM_deleteValue
 // @grant        GM_addValueChangeListener
 // @grant        GM_openInTab
+// @grant        GM_setClipboard
+// @grant        unsafeWindow
 // @run-at       document-idle
 // @downloadURL  https://hoseoican.github.io/hoseo_docs/hoseo-mail-bridge.user.js
 // @updateURL    https://hoseoican.github.io/hoseo_docs/hoseo-mail-bridge.user.js
@@ -87,14 +89,38 @@
   function buttonByText(words) {
     return Array.prototype.filter.call(document.querySelectorAll('button, a, [role=button]'), function (b) { var t = txt(b).replace(/\s/g, ''); return visible(b) && words.some(function (w) { return t === w || t.indexOf(w) === 0 && t.length <= w.length + 2; }); })[0] || null;
   }
-  function editorBody() {
-    var frames = Array.prototype.filter.call(document.querySelectorAll('iframe'), visible);
-    for (var i = 0; i < frames.length; i++) {
-      try { var d = frames[i].contentDocument; if (d && d.body && (d.body.isContentEditable || d.designMode === 'on')) return d.body; } catch (e) { /* 다른 출처 */ }
-    }
-    var eds = Array.prototype.filter.call(document.querySelectorAll('[contenteditable=true], [contenteditable=""]'), visible);
-    eds.sort(function (a, b) { var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; });
-    return eds[0] || null;
+  // 본문 편집 영역 찾기: 같은 출처 iframe(여러 겹 포함) 안의 편집 body, 또는 contenteditable
+  function editables(doc, depth) {
+    var out = [];
+    Array.prototype.forEach.call(doc.querySelectorAll('iframe'), function (f) {
+      try { var d = f.contentDocument; if (!d || !d.body) return;
+        if (d.body.isContentEditable || d.designMode === 'on') out.push({ el: d.body, doc: d, win: f.contentWindow, area: f.getBoundingClientRect().width * f.getBoundingClientRect().height });
+        if (depth < 3) out = out.concat(editables(d, depth + 1));
+      } catch (e) { /* 다른 출처 */ }
+    });
+    Array.prototype.forEach.call(doc.querySelectorAll('[contenteditable=true], [contenteditable=""]'), function (el) {
+      if (el.closest('[contenteditable=true]') !== el && el.parentElement && el.parentElement.closest('[contenteditable=true]')) return;
+      var r = el.getBoundingClientRect(); if (r.width * r.height > 0) out.push({ el: el, doc: doc, win: doc.defaultView, area: r.width * r.height });
+    });
+    out.sort(function (a, b) { return b.area - a.area; });
+    return out;
+  }
+  function editorBody() { var e = editables(document, 0)[0]; return e || null; }
+  // 편집기 종류에 맞춰 맨 앞에 HTML 넣기
+  function insertBody(ed, html) {
+    var W = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+    try { var tm = W.tinymce && W.tinymce.activeEditor; if (tm) { tm.focus(); tm.selection.setCursorLocation(tm.getBody(), 0); tm.insertContent(html); return 'tinymce'; } } catch (e) {}
+    try { var ck = W.CKEDITOR && W.CKEDITOR.instances; if (ck) { var k = Object.keys(ck)[0]; if (k) { ck[k].focus(); ck[k].insertHtml(html); return 'ckeditor'; } } } catch (e) {}
+    var el = ed.el, d = ed.doc;
+    try {
+      el.focus();
+      var sel = (ed.win || d.defaultView).getSelection(), r = d.createRange();
+      r.setStart(el, 0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+      if (d.execCommand('insertHTML', false, html)) return 'execCommand';
+    } catch (e) {}
+    el.insertAdjacentHTML('afterbegin', html);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return 'html';
   }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -120,14 +146,23 @@
     var subj = inputByLabel(['제목', 'subject', 'Subject']);
     if (subj) { setVal(subj, job.subject); log('제목', true); } else log('제목', false, '직접 넣어 주세요');
 
-    var body = await waitFor(editorBody, 8000);
+    var html = job.bodyHtml || esc(job.body).split('\n').map(function (l) { return '<div>' + (l || '<br>') + '</div>'; }).join('');
+    var body = await waitFor(editorBody, 20000), check = (job.body || '').split('\n').filter(function (l) { return l.trim().length > 6; })[0] || '';
+    check = check.replace(/\*\*/g, '').trim().slice(0, 12);
+    var bodyOk = false;
     if (body) {
-      var html = job.bodyHtml || esc(job.body).split('\n').map(function (l) { return '<div>' + (l || '<br>') + '</div>'; }).join('');
-      body.focus();
-      body.insertAdjacentHTML('afterbegin', html);
-      body.dispatchEvent(new Event('input', { bubbles: true }));
-      log('본문', true);
-    } else log('본문', false, '본문을 직접 붙여 넣어 주세요(미리보기의 본문 복사)');
+      if (check && txt(body.el).indexOf('앵커늘봄총괄센터 드림') >= 0 && txt(body.el).indexOf(check) >= 0) { bodyOk = true; log('본문', true, '서명에 이미 들어 있어 그대로 둡니다'); }
+      else {
+        var how = insertBody(body, html); await sleep(400);
+        bodyOk = !check || txt(body.el).indexOf(check) >= 0;
+        log('본문', bodyOk, bodyOk ? '' : '자동으로 못 넣었습니다');
+      }
+    }
+    if (!bodyOk) {
+      try { GM_setClipboard(html, 'html'); log('본문 복사', true, '본문 칸을 누르고 Ctrl+V 하세요(서식 포함 복사해 둠)'); }
+      catch (e) { log('본문', false, '미리보기의 「본문 복사」로 붙여 넣어 주세요'); }
+    }
+    body = bodyOk ? body : null;
 
     var ok = await attach();
     log('ZIP 첨부', ok, job.fileName);

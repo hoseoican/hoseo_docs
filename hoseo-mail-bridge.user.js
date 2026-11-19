@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         앵커늘봄 강사서류 → 호서대 메일 보내기
 // @namespace    https://hoseoican.github.io/hoseo_docs/
-// @version      0.3.0
+// @version      0.3.1
 // @description  강사서류 작성 프로그램의 「학교 메일로 보내기」를 누르면 호서대 웹메일 쓰기 창에 받는 사람·제목·본문·ZIP 첨부를 채웁니다.
 // @match        https://hoseoican.github.io/hoseo_docs/*
 // @match        https://mail.hoseo.edu/*
@@ -18,7 +18,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  var VERSION = '0.3.0';
+  var VERSION = '0.3.1';
   var MAIL_HOME = 'https://mail.hoseo.edu/mail/allmail';
   var JOB_TTL = 20 * 60 * 1000; // 20분 지난 작업은 버림
 
@@ -169,13 +169,14 @@
     check = check.replace(/\*\*/g, '').trim().slice(0, 12);
     var bodyOk = false;
     if (body) {
-      if (check && txt(body.el).indexOf(check) >= 0) { bodyOk = true; log('본문', true, '이미 들어 있습니다'); }
+      if (job.bodyDone && check && txt(body.el).indexOf(check) >= 0) { bodyOk = true; log('본문', true, '이미 들어 있습니다'); }
       else {
         var stripped = stripOldNotice(body.el);
         var how = insertBody(body, html); await sleep(400);
         if (stripped) log('서명의 예전 안내문', true, '지우고 미리보기 내용으로 바꿨습니다');
         bodyOk = !check || txt(body.el).indexOf(check) >= 0;
         log('본문', bodyOk, bodyOk ? '' : '자동으로 못 넣었습니다');
+        if (bodyOk) { job.bodyDone = true; GM_setValue('hsJob', job); }
       }
     }
     if (!bodyOk) {

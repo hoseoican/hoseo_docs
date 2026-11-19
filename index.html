@@ -677,7 +677,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.19-15';
+var APP_VERSION = '2026.11.19-16';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1517,8 +1517,20 @@ async function importFiles(list){
       setIf('phone', r.phone ? Forms.fmtPhone(r.phone) : '', '연락처');
       setIf('address', r.address, '주소'); setIf('email', r.email, '이메일');
       [['edu','학력'],['career','경력'],['cert','자격']].forEach(function(x){ if(!emptyRows(r[x[0]]) && emptyRows(target[x[0]])){ target[x[0]]=r[x[0]]; got.push(x[1]); } });
-      var sch=schoolsOf(target), added=r.schools.filter(function(s){ return sch.indexOf(s)<0; });
-      if(added.length){ target.schools=sch.concat(added); got.push('학교('+added.join(', ')+')'); }
+      // 출강 학교: 운영 목록에 이 강사가 있으면 운영 목록의 학교로 맞춘다(서류에 적힌 예전 학교명 대신)
+      var opP = opsLoaded() ? opsPersonOf(target.name || r.name) : null, schNote='';
+      if(opP && opP.schools.length){
+        var before=schoolsOf(target), docSch=r.schools.filter(function(s){ return opP.schools.indexOf(s)<0; });
+        var dropped=before.filter(function(s){ return opP.schools.indexOf(s)<0; });
+        if(before.join('|')!==opP.schools.join('|')){ target.schools=opP.schools.slice(); got.push('출강 학교('+opP.schools.join(', ')+', 운영 목록)'); }
+        var gone=dropped.concat(docSch).filter(function(v,j,a){ return a.indexOf(v)===j; });
+        if(gone.length) schNote='서류에 적힌 학교 '+gone.join(', ')+' 대신 운영 목록의 '+opP.schools.join(', ')+'(으)로 맞췄습니다';
+        applyOpsPerson(target, opP, false).forEach(function(g){ if(g.indexOf('학교')!==0 && got.indexOf(g)<0) got.push(g); });
+      } else {
+        var sch=schoolsOf(target), added=r.schools.filter(function(s){ return sch.indexOf(s)<0; });
+        if(added.length){ target.schools=sch.concat(added); got.push('학교('+added.join(', ')+')'); }
+        if(opsLoaded() && (target.name||r.name)) schNote='운영 목록에 없는 강사라 서류에 적힌 학교명을 그대로 넣었습니다. 출강 학교를 확인해 주세요';
+      }
       var imgNames={sign:'서명',photo:'사진',idcard:'신분증',bank:'통장'};
       for(const k of Object.keys(r.imgs)){ if(!target.imgs[k]){ target.imgs[k] = (k==='sign'||k==='photo') ? await normalizeImg(k, r.imgs[k]) : r.imgs[k]; got.push(imgNames[k]); } }
       var pdfN=0;
@@ -1529,8 +1541,9 @@ async function importFiles(list){
       if(pdfN) got.push('PDF '+pdfN+'개');
       if(r.examDate && !target.examDate){ target.examDate=r.examDate; got.push('검진일'+(r.examGuess?'(월만)':'')); }
       target.updated=Date.now(); dbPut(target); lastTarget=target;
-      var notes=r.notes.slice();
-      if(r.birth && r.rrn && Forms.birthFromRrn(r.rrn).replace(/\D/g,'')!==r.birth.replace(/\D/g,'')) notes.push('이력서 생년월일('+r.birth+')이 주민번호와 다릅니다');
+      var notes=r.notes.slice(); if(schNote) notes.unshift(schNote);
+      var ymd=function(v){ var m=String(v||'').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m ? m[1]+'-'+(+m[2])+'-'+(+m[3]) : String(v||'').replace(/\D/g,''); };
+      if(r.birth && r.rrn && ymd(Forms.birthFromRrn(r.rrn))!==ymd(r.birth)) notes.push('이력서 생년월일('+r.birth+')이 주민번호와 다릅니다');
       if(r.examGuess) notes.push('검진일은 파일 이름의 연·월만 보고 1일로 넣었습니다. 서류의 정확한 날짜로 고쳐 주세요');
       html.push('<div class="impp"><h4>'+esc(target.name||'(이름 못 찾음)')+' <span class="tag'+(isNew?' new':'')+'">'+(isNew?'새로 추가':'기존 강사')+'</span><span class="tag">'+target.role+'</span></h4>'+
         '<div class="got">'+(got.length?'채움: <b>'+got.map(esc).join(' · ')+'</b>':'새로 채운 칸이 없습니다 (이미 입력되어 있음)')+'</div>'+

@@ -357,6 +357,9 @@
 
   .modal { position: fixed; inset: 0; background: rgba(30,10,10,.45); display: none; align-items: center; justify-content: center; z-index: 50; }
   .modal.on { display: flex; }
+  .sybox { border-top: 1px solid var(--line); padding: 10px 0 10px; margin: 0 0 10px; }
+  .sybox .iss { margin: 8px 0 0; padding: 8px 10px; background: #FFF6F0; border-radius: 8px; font-size: 12.5px; line-height: 1.6; }
+  .sybox .iss button { margin-left: 6px; }
   .modal .box { background: #fff; border-radius: 14px; padding: 22px 24px; width: min(560px, 92vw); max-height: 88vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
   .modal h3 { margin: 0 0 6px; font-size: 17px; color: var(--hs-d); }
   .modal .note { margin: 0 0 12px; font-size: 12.5px; color: var(--mute); line-height: 1.5; }
@@ -555,6 +558,17 @@
         <button type="button" id="gsLoad">구글 시트에서 불러오기</button>
         <label class="hint" style="font-size:13px;color:var(--ink)"><input type="checkbox" id="gsAuto"> 화면을 열 때 자동으로 불러오기</label>
         <span class="hint" id="gsLoadInfo"></span>
+      </div>
+      <div class="sybox" id="syBox">
+        <div class="row" style="margin:0;gap:8px;align-items:center">
+          <b style="font-size:13.5px">강사 자료 공유</b>
+          <label class="hint" style="font-size:13px;color:var(--ink)"><input type="checkbox" id="syOn"> 다른 직원과 강사 자료 함께 쓰기</label>
+          <input type="text" id="syMe" placeholder="내 이름 (누가 고쳤는지 표시)" autocomplete="off" style="width:190px">
+          <button type="button" class="ghost sm" id="syNow">지금 맞추기</button>
+          <span class="hint" id="syState"></span>
+          <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">강사 입력값과 스캔본·사진·서명을 공유드라이브 폴더에 저장해 다른 직원 컴퓨터와 맞춥니다.<br>화면을 열 때와 1분마다 <b>바뀐 강사만</b> 받아 오고, 스캔본은 <b>그 강사를 열 때만</b> 받습니다. 고친 내용은 몇 초 뒤 자동으로 올라갑니다.<br>같은 강사를 두 사람이 동시에 고치면 「충돌」로 알려 줍니다. 어느 쪽 내용을 남길지 골라 주세요.<br>처음 켜면 이 브라우저에 있는 강사를 모두 올립니다. 이미 같은 이름이 공유돼 있으면 올리지 않고 따로 보여 줍니다.</span></span>
+        </div>
+        <div id="syIssues"></div>
       </div>
       <details id="gsSet">
         <summary>연동 설정</summary>
@@ -943,7 +957,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-10';
+var APP_VERSION = '2026.11.20-11';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -992,8 +1006,8 @@ var mem = {}, idb = null;
 function openDb(){ return new Promise(function(res){ try{ var r=indexedDB.open('anchor-lecturer-docs',1); r.onupgradeneeded=function(){ r.result.createObjectStore('people',{keyPath:'id'}); r.result.createObjectStore('kv'); }; r.onsuccess=function(){ idb=r.result; res(); }; r.onerror=function(){ res(); }; }catch(e){ res(); } }); }
 function tx(store, mode){ return idb.transaction(store, mode).objectStore(store); }
 function dbAll(){ return new Promise(function(res){ if(!idb) return res(Object.keys(mem).map(function(k){return mem[k];})); try{ var q=tx('people','readonly').getAll(); q.onsuccess=function(){res(q.result||[]);}; q.onerror=function(){res([]);}; }catch(e){ res([]); } }); }
-function dbPut(p){ mem[p.id]=p; bkDirty(); if(!idb) return; try{ tx('people','readwrite').put(p); }catch(e){} }
-function dbDel(id){ delete mem[id]; bkDirty(); if(!idb) return; try{ tx('people','readwrite').delete(id); }catch(e){} }
+function dbPut(p, local){ mem[p.id]=p; bkDirty(); if(!local) syMark(p.id); if(!idb) return; try{ tx('people','readwrite').put(p); }catch(e){} }
+function dbDel(id, local){ delete mem[id]; bkDirty(); if(!local) syMarkDel(id); if(!idb) return; try{ tx('people','readwrite').delete(id); }catch(e){} }
 function kvGet(k){ return new Promise(function(res){ if(!idb) return res(null); try{ var q=tx('kv','readonly').get(k); q.onsuccess=function(){res(q.result||null);}; q.onerror=function(){res(null);}; }catch(e){ res(null); } }); }
 function kvPut(k,v){ if(k!=='backupCfg' && k!=='backupDir') bkDirty(); if(!idb) return; try{ tx('kv','readwrite').put(v,k); }catch(e){} }
 
@@ -1166,7 +1180,7 @@ async function bkRestore(file){
     if(!confirm(msg+'. 계속할까요?')){ info.textContent='취소했습니다'; return; }
     var add=0, upd=0;
     if(how==='replace'){
-      people.slice().forEach(function(p){ dbDel(p.id); }); people=[];
+      people.slice().forEach(function(p){ dbDel(p.id, true); }); people=[];   // 복원은 공유 자료를 지우지 않는다
       data.people.forEach(function(p){ dbPut(p); people.push(p); add++; });
       for(const k of BK_KEYS){ if(data.kv[k]!=null) kvPut(k, data.kv[k]); }
     } else {
@@ -1280,9 +1294,9 @@ async function shrinkPdf(bytes){
 async function shrinkPdfList(arr){
   var ch=false;
   for(const f of (arr||[])){
-    if(f.shrunk || !/\.pdf$/i.test(f.name||'')) { continue; }
+    if(f.shrunk || !f.data || !/\.pdf$/i.test(f.name||'')) { continue; }
     var nb=await shrinkPdf(f.data); f.shrunk=true; ch=true;
-    if(nb!==f.data){ f.orig=f.orig||f.data.length; f.data=nb; }
+    if(nb!==f.data){ f.orig=f.orig||f.data.length; f.data=nb; delete f._fid; }
   }
   return ch;
 }
@@ -1644,6 +1658,7 @@ function renderImgs(){
     if(urls[m.k]){ URL.revokeObjectURL(urls[m.k]); delete urls[m.k]; }
     var old=el.querySelector('.x'); if(old) old.remove();
     el.classList.toggle('loaded', !!v);
+    if(v && !v.data){ ph.innerHTML='<span class="hint">불러오는 중…</span>'; return; }
     if(v){
       urls[m.k]=URL.createObjectURL(new Blob([v.data],{type:v.ext==='png'?'image/png':'image/jpeg'}));
       ph.innerHTML='<img src="'+urls[m.k]+'" class="'+(m.k==='sign'?'checker':'')+'" alt="">';
@@ -1872,7 +1887,7 @@ function bind(){
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ ['settings','namesDlg','classDlg','schoolDlg'].forEach(function(id){ $(id).classList.remove('on'); }); } });
 }
 function newPerson(){ var p=blank(); people.push(p); dbPut(p); return p; }
-function select(id){ var p=people.filter(function(x){return x.id===id;})[0]; if(p){ cur=p; renderAll(); } }
+function select(id){ var p=people.filter(function(x){return x.id===id;})[0]; if(p){ cur=p; renderAll(); syLoadCur(p); } }
 function renderAll(){ renderList(); renderForm(); refresh(); renderFix(); }
 
 /* ---------- 만들기 ---------- */
@@ -1883,6 +1898,7 @@ function getDownloads(){
   return downloadsP;
 }
 async function addPersonFiles(zip, p, only, prefix, warns){
+  if(!(await syEnsure(p))) throw new Error((p.name||'')+' 강사의 스캔본을 공유 폴더에서 받지 못했습니다');
   await shrinkPersonPdfs(p); await shrinkStoredImgs(p); // 용량 줄이기(한 번 줄인 파일은 건너뜀)
   var env={HwpCore:HwpCore, deps:{CFB:CFB, pako:pako}, JSZip:JSZip};
   var imgs={}; Object.keys(p.imgs).forEach(function(k){ var v=p.imgs[k]; imgs[k]={bytes:v.data, ext:v.ext, pxW:v.pxW, pxH:v.pxH}; });
@@ -2552,9 +2568,156 @@ async function gasPing(quiet){
     gasOpsList = (gasInfo.ops||[]).map(function(o){ return { label: o.label, id: o.id }; });
     if(gasInfo.cfg) applyCertCfg(gasInfo.cfg, true);
     renderGasOps(); gasState();
+    syRender(); if(!quiet) syStart();
     if(!quiet) $('gsTestInfo').textContent = '연결했습니다. 날인대장 「'+gasInfo.sheet+'」 탭, 운영현황 시트 '+gasOpsList.length+'개';
     return true;
   }catch(e){ gasInfo = null; gasState(); if(!quiet) $('gsTestInfo').textContent = e.message; else toast('구글 시트 연동: '+e.message); return false; }
+}
+/* ---------- 강사 자료 공유 (공유드라이브 + 나눠 읽기) ----------
+   people.json(강사 입력값)은 바뀐 강사만 받고, 스캔본·사진·서명은 그 강사를 열 때만 받는다.
+   sy.dirty: 아직 올리지 않은 강사 {id: 1 | {del:1}} · sy.conf: 충돌 {id: 공유 자료} · sy.dup: 같은 이름이 이미 공유돼 올리지 않은 강사 id */
+var sy = { on: false, me: '', rev: 0, dirty: {}, conf: {}, dup: [], last: 0, started: false }, syBusy = false, syAgain = false, syTimer = null, syPushT = null, syMsg = '';
+function syReady(){ return sy.on && gasOn() && gasInfo && gasInfo.data; }
+function sySave(){ kvPut('sync', { on: sy.on, me: sy.me, rev: sy.rev, dirty: sy.dirty, conf: sy.conf, dup: sy.dup, last: sy.last, started: sy.started }); }
+function syMark(id){ if(!id) return; if(!(sy.dirty[id] && sy.dirty[id].del)) sy.dirty[id] = 1; sySave(); syKick(); }
+function syMarkDel(id){ if(!id) return; sy.dirty[id] = { del: 1 }; delete sy.conf[id]; sy.dup = sy.dup.filter(function(x){ return x !== id; }); sySave(); syKick(); }
+function syKick(){ if(!syReady()) return; clearTimeout(syPushT); syPushT = setTimeout(function(){ syRun(false); }, 4000); syRender(); }
+function syHolders(p){
+  var out = [];
+  Object.keys(p.imgs||{}).forEach(function(k){ var v = p.imgs[k]; if(v) out.push({ h: v, name: k, ext: v.ext || 'jpg' }); });
+  Object.keys(p.pdfs||{}).forEach(function(k){ (p.pdfs[k]||[]).forEach(function(f, i){ if(f) out.push({ h: f, name: k+'_'+(i+1), ext: ((f.name||'').match(/\.([a-z0-9]+)$/i)||['','pdf'])[1] }); }); });
+  return out;
+}
+function syMissing(p){ return syHolders(p).filter(function(x){ return !x.h.data && x.h._fid; }); }
+async function syPool(list, n, fn){ var i = 0; async function w(){ while(i < list.length){ var x = list[i++]; await fn(x); } } var ws = []; for(var k=0; k<Math.min(n, list.length); k++) ws.push(w()); await Promise.all(ws); }
+// 그 강사의 스캔본·사진·서명을 받아 둔다 (이미 있으면 바로 끝)
+async function syEnsure(p){
+  var need = syMissing(p); if(!need.length) return true;
+  if(!gasOn()) return false;
+  try{ await syPool(need, 3, async function(x){ var r = await gasCall('fget', { fid: x.h._fid }); x.h.data = b64ToU8(r.b64); }); }
+  catch(e){ console.error(e); return false; }
+  dbPut(p, true); return true;
+}
+function syLoadCur(p){
+  if(!p || !syMissing(p).length) return;
+  syEnsure(p).then(function(ok){ if(cur === p) renderAll(); if(!ok) toast('「'+(p.name||'')+'」 스캔본을 공유 폴더에서 받지 못했습니다. 연동 상태를 확인해 주세요'); });
+}
+function syPlain(p){ return JSON.parse(JSON.stringify(p, function(k, v){ return v instanceof Uint8Array ? null : v; })); }
+// 공유 자료로 강사를 만든다. 이미 받아 둔 스캔본(같은 파일)은 그대로 쓴다
+function syFromRemote(r, old){
+  var p = r.data; p._rev = r.rev; p._by = r.by || ''; p._at = r.updated || 0;
+  var have = {}; if(old) syHolders(old).forEach(function(x){ if(x.h._fid && x.h.data) have[x.h._fid] = x.h.data; });
+  syHolders(p).forEach(function(x){ x.h.data = x.h._fid && have[x.h._fid] || null; });
+  p.imgs = p.imgs || {}; p.pdfs = p.pdfs || {}; p.schools = p.schools || [''];
+  return p;
+}
+function syReplace(p, old){
+  var i = old ? people.indexOf(old) : -1; if(i >= 0) people[i] = p; else people.push(p);
+  dbPut(p, true); if(cur && cur.id === p.id){ cur = p; return true; } return false;
+}
+async function syPull(){
+  var r = await gasCall('sync', { since: sy.rev }), curChanged = false, listChanged = false, first = !sy.started;
+  r.people.forEach(function(x){
+    var old = people.filter(function(p){ return p.id === x.id; })[0], dirty = sy.dirty[x.id];
+    if(x.deleted){
+      if(old && !dirty){ people = people.filter(function(p){ return p !== old; }); dbDel(x.id, true); listChanged = true; if(cur === old){ cur = people[0] || newPerson(); curChanged = true; } }
+      return;
+    }
+    if(old && old._rev === x.rev) return;
+    if(old && dirty && !first){ if(!(dirty.del)) sy.conf[x.id] = x; return; }
+    if(old && dirty && first && !old._rev) return;   // 처음 맞출 때: 이 브라우저 것과 공유 것이 같은 강사 → 아래에서 올리지 않고 비교
+    if(syReplace(syFromRemote(x, old), old)) curChanged = true;
+    listChanged = true; delete sy.dirty[x.id];
+  });
+  if(first){
+    // 처음 켤 때: 이 브라우저에만 있는 강사를 올린다. 같은 이름이 이미 공유돼 있으면 올리지 않고 따로 보여 준다
+    var shared = {}; r.people.forEach(function(x){ if(!x.deleted && x.data) shared[x.id] = String(x.data.name||'').replace(/\s/g,''); });
+    var names = {}; Object.keys(shared).forEach(function(id){ if(shared[id]) names[shared[id]] = id; });
+    people.forEach(function(p){
+      if(shared[p.id] || p._rev) return;
+      var n = String(p.name||'').replace(/\s/g,''); if(!n) return;
+      if(names[n] && names[n] !== p.id){ delete sy.dirty[p.id]; if(sy.dup.indexOf(p.id) < 0) sy.dup.push(p.id); }
+      else sy.dirty[p.id] = 1;
+    });
+    sy.started = true;
+  }
+  sy.rev = r.rev; sySave();
+  if(listChanged || curChanged){ renderList(); if(curChanged){ renderAll(); syLoadCur(cur); } if(page === 'status') renderStatus(); if(page === 'roster') renderRoster(); }
+  return r;
+}
+async function syPushOne(id){
+  var d = sy.dirty[id];
+  if(d && d.del){ await gasCall('del', { id: id, by: sy.me }); delete sy.dirty[id]; return; }
+  var p = people.filter(function(x){ return x.id === id; })[0];
+  if(!p){ delete sy.dirty[id]; return; }
+  if(!String(p.name||'').trim() || sy.dup.indexOf(id) >= 0 || sy.conf[id]) return;   // 이름 없는 강사·같은 이름·충돌은 올리지 않음
+  var snap = p.updated, base = String(p.name||'').trim();
+  for(const x of syHolders(p)){
+    if(x.h._fid || !x.h.data) continue;
+    var r0 = await gasCall('fput', { name: base+'_'+x.name+'.'+x.ext, mime: x.ext === 'pdf' ? 'application/pdf' : x.ext === 'png' ? 'image/png' : 'image/jpeg', b64: u8ToB64(x.h.data) });
+    x.h._fid = r0.fid; dbPut(p, true);
+  }
+  var body = syPlain(p); delete body._rev; delete body._by; delete body._at;
+  var r = await gasCall('put', { person: body, baseRev: p._rev, by: sy.me, force: !!syPushOne.force[id] });
+  delete syPushOne.force[id];
+  if(r.conflict){ sy.conf[id] = r.current; return; }
+  p._rev = r.rev; p._by = sy.me; p._at = Date.now(); dbPut(p, true);
+  if(p.updated === snap) delete sy.dirty[id];
+}
+syPushOne.force = {};
+async function syRun(manual){
+  if(!syReady()){ if(manual) toast(!sy.on ? '「다른 직원과 강사 자료 함께 쓰기」를 켜 주세요' : gasInfo && !gasInfo.data ? '앱스 스크립트에 공유 폴더가 없습니다. setDataFolder를 실행하고 새 버전으로 배포해 주세요' : '연동 확인 전입니다'); syRender(); return; }
+  if(syBusy){ syAgain = true; return; }
+  syBusy = true; syMsg = '맞추는 중…'; syRender();
+  try{
+    await syPull();
+    var ids = Object.keys(sy.dirty), done = 0;
+    for(const id of ids){ syMsg = '올리는 중 '+(++done)+'/'+ids.length; syRender(); await syPushOne(id); sySave(); }
+    sy.last = Date.now(); syMsg = ''; sySave();
+    if(manual) toast('강사 자료를 맞췄습니다');
+  }catch(e){ console.error(e); syMsg = '맞추지 못함: '+(e.message||e); }
+  finally{ syBusy = false; syRender(); if(syAgain){ syAgain = false; setTimeout(function(){ syRun(false); }, 500); } }
+}
+function syStart(){
+  syRender();
+  if(!syReady()) return;
+  clearInterval(syTimer); syTimer = setInterval(function(){ if(!document.hidden) syRun(false); }, 60000);
+  syRun(false);
+}
+document.addEventListener('visibilitychange', function(){ if(!document.hidden && syReady() && Date.now() - sy.last > 20000) syRun(false); });
+function syRender(){
+  var st = $('syState'); if(!st) return;
+  var pend = Object.keys(sy.dirty).filter(function(id){ var d = sy.dirty[id]; if(d && d.del) return true; var p = people.filter(function(x){ return x.id === id; })[0]; return p && String(p.name||'').trim() && sy.dup.indexOf(id) < 0 && !sy.conf[id]; }).length;
+  var confN = Object.keys(sy.conf).length, t;
+  if(!sy.on) t = '끔 · 이 브라우저에만 저장';
+  else if(!gasOn()) t = '연동 설정이 없습니다';
+  else if(!gasInfo) t = '연동 확인 전';
+  else if(!gasInfo.data) t = '앱스 스크립트에 공유 폴더가 없습니다 (setDataFolder 실행 후 새 버전 배포)';
+  else t = syMsg || ((sy.last ? '마지막 맞춤 '+new Date(sy.last).toTimeString().slice(0,5) : '아직 맞춘 적 없음')+(pend ? ' · 올릴 강사 '+pend+'명' : ''));
+  st.textContent = t;
+  $('syOn').checked = !!sy.on; if(document.activeElement !== $('syMe')) $('syMe').value = sy.me || '';
+  var h = '';
+  if(confN) h += '<div class="iss"><b>충돌 '+confN+'명</b> · 내가 고치는 동안 다른 직원도 고쳤습니다. 어느 쪽을 남길지 골라 주세요.'+Object.keys(sy.conf).map(function(id){ var c = sy.conf[id], p = people.filter(function(x){ return x.id === id; })[0];
+    return '<div>'+esc(p ? p.name : (c.data && c.data.name) || id)+' <small>(공유본: '+esc(c.by||'이름 없음')+' · '+(c.updated ? new Date(c.updated).toLocaleString('ko-KR') : '')+')</small><button type="button" class="sm" data-syk="'+id+'">내 내용으로 저장</button><button type="button" class="ghost sm" data-syr="'+id+'">공유 내용 받기</button></div>'; }).join('')+'</div>';
+  var dups = sy.dup.map(function(id){ return people.filter(function(x){ return x.id === id; })[0]; }).filter(Boolean);
+  if(dups.length) h += '<div class="iss"><b>같은 이름이 이미 공유된 강사 '+dups.length+'명</b> · 이 브라우저 자료는 올리지 않았습니다. 공유 자료를 쓰려면 「이 브라우저 것 지우기」, 다른 사람이면 「따로 올리기」를 눌러 주세요.'+dups.map(function(p){
+    return '<div>'+esc(p.name)+' <small>('+esc(p.role)+' · '+esc(schoolsOf(p).join(', ')||'학교 없음')+')</small><button type="button" class="ghost sm" data-syd="'+p.id+'">이 브라우저 것 지우기</button><button type="button" class="ghost sm" data-syu="'+p.id+'">따로 올리기</button></div>'; }).join('')+'</div>';
+  $('syIssues').innerHTML = h;
+  var sh = $('storeHint'); if(sh && idb) sh.textContent = sy.on && gasInfo && gasInfo.data ? (confN ? '공유 충돌 '+confN+'명' : pend ? '공유 · 올릴 강사 '+pend+'명' : '공유 중') : '';
+}
+function bindSync(){
+  $('syOn').addEventListener('change', function(){ sy.on = $('syOn').checked; sySave(); if(sy.on){ if(!sy.me) $('syMe').focus(); syStart(); } else { clearInterval(syTimer); syRender(); } });
+  $('syMe').addEventListener('change', function(){ sy.me = $('syMe').value.trim(); sySave(); });
+  $('syNow').addEventListener('click', function(){ syRun(true); });
+  $('syIssues').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    var id = b.dataset.syk || b.dataset.syr || b.dataset.syd || b.dataset.syu;
+    if(b.dataset.syk){ delete sy.conf[id]; sy.dirty[id] = 1; syPushOne.force[id] = 1; sySave(); syRun(true); }
+    else if(b.dataset.syr){ var c = sy.conf[id], old = people.filter(function(x){ return x.id === id; })[0]; delete sy.conf[id]; delete sy.dirty[id]; if(c && c.data){ var p = syFromRemote(c, old); if(syReplace(p, old)){ renderAll(); syLoadCur(p); } else renderList(); } sySave(); syRender(); }
+    else if(b.dataset.syd){ var p2 = people.filter(function(x){ return x.id === id; })[0]; if(!p2 || !confirm('이 브라우저의 「'+p2.name+'」 자료를 지우고 공유 자료를 씁니다. 계속할까요?')) return; sy.dup = sy.dup.filter(function(x){ return x !== id; }); dbDel(id, true); delete sy.dirty[id]; people = people.filter(function(x){ return x !== p2; }); if(cur === p2) cur = people[0] || newPerson(); sySave(); renderAll(); syRender(); }
+    else if(b.dataset.syu){ sy.dup = sy.dup.filter(function(x){ return x !== id; }); sy.dirty[id] = 1; sySave(); syRun(true); }
+  });
+  syRender();
 }
 // 구글 시트(앱스 스크립트)에서 운영현황 읽기 → 엑셀 넣기와 같은 형태로 바꾼다
 async function loadOpsLinks(auto){
@@ -2827,7 +2990,7 @@ function bindCert(){
 
 /* ---------- 시작 ---------- */
 mailCfg=JSON.parse(JSON.stringify(DEFAULT_MAIL));
-buildRows(); buildImgs(); buildPdfs(); bind(); bindImport(); bindOpsMail(); bindBackup(); bindSms(); bindCert();
+buildRows(); buildImgs(); buildPdfs(); bind(); bindImport(); bindOpsMail(); bindBackup(); bindSms(); bindCert(); bindSync();
 var startPage='info'; try{ var sp=localStorage.getItem('lecDocsPage'); if(PAGES.indexOf(sp)>=0) startPage=sp; }catch(e){}
 var hp=(location.hash||'').slice(1); if(PAGES.indexOf(hp)>=0) startPage=hp;
 page=startPage;
@@ -2855,13 +3018,14 @@ openDb().then(async function(){
   var cl=await kvGet('certLog'); if(cl) certLog=cl;
   var cpp=await kvGet('certPeople'); if(cpp) certSaved=cpp;
   var crc=await kvGet('certRecent'); if(crc) certRecent=crc;
+  var syv=await kvGet('sync'); if(syv) sy=Object.assign(sy, syv);
   bindGas();
   people = await dbAll();
-  people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p); });
+  people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p, true); });
   cur = people.sort(function(a,b){return (b.updated||0)-(a.updated||0);})[0] || newPerson();
-  renderAll(); go(page, true);
+  renderAll(); go(page, true); syLoadCur(cur); syRender();
   bkInit();
-  if(gasOn()) gasPing(true).then(function(ok){ if(ok && gas.auto!==false) loadOpsLinks(true); else if(page==='cert') renderCert(); });
+  if(gasOn()) gasPing(true).then(function(ok){ if(ok) syStart(); if(ok && gas.auto!==false) loadOpsLinks(true); else if(page==='cert') renderCert(); });
 });
 getDownloads();
 })();

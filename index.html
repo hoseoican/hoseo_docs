@@ -942,7 +942,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-4';
+var APP_VERSION = '2026.11.20-5';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1100,7 +1100,7 @@ async function openSplit(){
 }
 
 /* ---------- 백업·복원 ---------- */
-var BK_KEYS=['settings','ops','contacts','mailCfg','sent','smsCfg','smsLog','gas','certCfg','certLog'], bkCfg={mode:'off', last:0, lastDay:''}, bkDir=null, bkTimer=null, bkReady=false, bkBusy=false;
+var BK_KEYS=['settings','ops','contacts','mailCfg','sent','smsCfg','smsLog','gas','certCfg','certLog','certPeople','certRecent'], bkCfg={mode:'off', last:0, lastDay:''}, bkDir=null, bkTimer=null, bkReady=false, bkBusy=false;
 function u8ToB64(u){ var s='', CH=0x8000; for(var i=0;i<u.length;i+=CH) s+=String.fromCharCode.apply(null, u.subarray(i,i+CH)); return btoa(s); }
 function b64ToU8(b){ var s=atob(b), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
 function bkStamp(){ var d=new Date(), z=function(n){ return ('0'+n).slice(-2); }; return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
@@ -1182,7 +1182,7 @@ async function bkRestore(file){
       if(kv.smsCfg && !(await kvGet('smsCfg'))) kvPut('smsCfg', kv.smsCfg);
       if(kv.mailCfg && !(await kvGet('mailCfg'))) kvPut('mailCfg', kv.mailCfg);
       if(kv.settings && !(await kvGet('settings'))) kvPut('settings', kv.settings);
-      for(const k2 of ['gas','certCfg','certLog']){ if(kv[k2] && !(await kvGet(k2))) kvPut(k2, kv[k2]); }
+      for(const k2 of ['gas','certCfg','certLog','certPeople','certRecent']){ if(kv[k2] && !(await kvGet(k2))) kvPut(k2, kv[k2]); }
     }
     info.textContent='복원했습니다 (새로 '+add+'명'+(upd?', 바꿈 '+upd+'명':'')+'). 화면을 다시 불러옵니다…';
     setTimeout(function(){ location.reload(); }, 900);
@@ -2587,7 +2587,7 @@ var DEFAULT_CERT = {
   org: '호서대학교 산학협력단', dept: '앵커늘봄총괄센터', headTitle: '앵커늘봄총괄센터장', headName: '전  수  진',
   staff: [{ name: '이지훈', title: '연구원', tel: '041-423-2427' }], dropLineSeg: true, nextSeq: 47
 };
-var certCfg = JSON.parse(JSON.stringify(DEFAULT_CERT)), certLog = [], ct = { name: '', tel: '', picked: {}, noEdited: false, noteEdited: false, last: null };
+var certCfg = JSON.parse(JSON.stringify(DEFAULT_CERT)), certLog = [], certSaved = {}, certRecent = [], ct = { name: '', tel: '', picked: {}, noEdited: false, noteEdited: false, last: null };
 function applyCertCfg(c, fromServer){
   var keepSeq = certCfg.nextSeq;
   certCfg = Object.assign(JSON.parse(JSON.stringify(DEFAULT_CERT)), c || {});
@@ -2645,7 +2645,10 @@ function renderCert(){
 }
 function renderCtPeople(){
   var q = $('ctQ').value.replace(/\s/g,''), m = certPeople(), names = Object.keys(m).sort(function(a,b){ return a.localeCompare(b,'ko'); });
-  if(!q){ $('ctPeople').innerHTML = ''; if(!ct.name) $('ctClasses').innerHTML = '<p class="hint" style="margin:10px 0 0">강사 이름을 넣으면 그 강사의 수업이 나옵니다. 운영현황 강사 '+names.length+'명</p>'; else renderCtClasses(); return; }
+  if(!q){
+    var rc = certRecent.filter(function(n){ return m[n]; });
+    $('ctPeople').innerHTML = rc.length ? '<span class="hint" style="margin-right:4px">최근 발급</span>'+rc.map(function(n){ return '<button type="button" data-ctp="'+esc(n)+'" class="'+(ct.name===n?'on':'')+'">'+esc(n)+'<b>'+m[n].length+'</b></button>'; }).join('') : '';
+    if(!ct.name) $('ctClasses').innerHTML = '<p class="hint" style="margin:10px 0 0">강사 이름을 넣으면 그 강사의 수업이 나옵니다. 운영현황 강사 '+names.length+'명</p>'; else renderCtClasses(); return; }
   var hit = names.filter(function(n){ return n.indexOf(q) >= 0; }).slice(0, 30);
   $('ctPeople').innerHTML = hit.length ? hit.map(function(n){ return '<button type="button" data-ctp="'+esc(n)+'" class="'+(ct.name===n?'on':'')+'">'+esc(n)+'<b>'+m[n].length+'</b></button>'; }).join('') : '<span class="hint">운영현황에 없는 이름입니다. 오른쪽 내용을 직접 넣어 발급할 수 있습니다.</span>';
   if(hit.length === 1 && hit[0] === q && ct.name !== q) ctPick(q); else renderCtClasses();
@@ -2654,9 +2657,12 @@ function ctPick(name){
   ct.name = name; ct.tel = ''; ct.picked = {}; ct.noteEdited = false;
   $('ctName').value = name;
   var rp = personBy(name);
-  var b = rp ? Forms.birthFromRrn(rp.rrn) : '';
-  $('ctBirth').value = b; $('ctBirthHint').textContent = b ? '주민번호에서' : '';
-  $('ctAddr').value = rp && rp.address || ''; $('ctAddrHint').textContent = rp && rp.address ? '인적사항에서' : '';
+  var sv = certSaved[name] || {}, b = rp ? Forms.birthFromRrn(rp.rrn) : '', bh = b ? '주민번호에서' : '';
+  if(!b && sv.birth){ b = sv.birth; bh = '지난 발급에서'; }
+  var ad = rp && rp.address || '', ah = ad ? '인적사항에서' : '';
+  if(!ad && sv.address){ ad = sv.address; ah = '지난 발급에서'; }
+  $('ctBirth').value = b; $('ctBirthHint').textContent = bh;
+  $('ctAddr').value = ad; $('ctAddrHint').textContent = ah;
   renderCtPeople(); ctFill();
 }
 function renderCtClasses(){
@@ -2730,7 +2736,9 @@ async function ctMake(){
       $('ctDoneMsg').innerHTML = '<b>'+esc(d.docNo)+'</b> 이 브라우저 발급 내역에 기록했습니다. 아래 줄을 날인대장에 붙여 넣어 주세요.';
       $('ctLedger').value = ledgerLine(entry); $('ctLedgerBox').hidden = false;
     }
-    ct.last = d; $('ctDone').hidden = false; info.textContent = '';
+    certSaved[d.name] = { birth: d.birth, address: d.address, ts: Date.now() }; kvPut('certPeople', certSaved);
+    certRecent = [d.name].concat(certRecent.filter(function(n){ return n !== d.name; })).slice(0, 8); kvPut('certRecent', certRecent);
+    ct.last = d; $('ctDone').hidden = false; info.textContent = ''; renderCtPeople();
     await ctSave(d);
     ct.noEdited = false; ctRefreshNo();
   }catch(e){ console.error(e); info.textContent = (gasOn() && !entry.docNo ? '날인대장에 기록하지 못해 발급하지 않았습니다: ' : '')+(e.message||e); }
@@ -2802,6 +2810,8 @@ openDb().then(async function(){
   var gs=await kvGet('gas'); if(gs) gas=Object.assign(gas, gs);
   var cc=await kvGet('certCfg'); if(cc) applyCertCfg(cc, false);
   var cl=await kvGet('certLog'); if(cl) certLog=cl;
+  var cpp=await kvGet('certPeople'); if(cpp) certSaved=cpp;
+  var crc=await kvGet('certRecent'); if(crc) certRecent=crc;
   bindGas();
   people = await dbAll();
   people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p); });

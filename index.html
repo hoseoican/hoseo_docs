@@ -546,10 +546,12 @@
 
   <!-- ① 인적사항 -->
   <section data-sec="info">
-    <div id="imp"><b>제출서류 불러오기</b> <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">강사가 보낸 <b>ZIP</b>, 또는 <b>한글(.hwp·.hwpx)·PDF·JPG</b> 파일을 끌어다 놓으면 빈칸을 미리 채웁니다. 화면 어디에 놓아도 됩니다.<br><b>이력서</b>: 성명·생년월일·연락처·주소·이메일·학력·경력·자격·증명사진<br><b>0번 동의서</b>: 주민등록번호 · <b>서약서들</b>: 학교명, 서명 이미지 · <b>2번</b>: 신분증·통장 사진<br><b>PDF·JPG</b>: 파일 이름으로 신체검사서·잠복결핵·졸업증명서·경력/자격 칸에 나눠 넣습니다. JPG는 PDF로 바꿉니다. 신체검사서 이름의 「(2026. 6.)」은 검진일로 씁니다.<br>여러 강사의 폴더가 든 ZIP은 <b>강사별로 나눠서</b> 목록에 넣습니다. 이미 있는 강사(같은 이름)는 <b>비어 있는 칸만</b> 채우고 적어 둔 내용은 바꾸지 않습니다.<br>PDF로 낸 이력서·신분증과 스캔본은 글자를 읽지 못하니 직접 넣어 주세요.</span></span>
+    <div id="imp"><b>제출서류 불러오기</b> <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">강사가 보낸 <b>ZIP</b>, <b>폴더</b>(강사별 폴더를 모은 상위 폴더도 가능), 또는 <b>한글(.hwp·.hwpx)·PDF·JPG</b> 파일을 끌어다 놓으면 빈칸을 미리 채웁니다. 화면 어디에 놓아도 됩니다.<br><b>이력서</b>: 성명·생년월일·연락처·주소·이메일·학력·경력·자격·증명사진<br><b>0번 동의서</b>: 주민등록번호 · <b>서약서들</b>: 학교명, 서명 이미지 · <b>2번</b>: 신분증·통장 사진<br><b>PDF·JPG</b>: 파일 이름으로 신체검사서·잠복결핵·졸업증명서·경력/자격 칸에 나눠 넣습니다. JPG는 PDF로 바꿉니다. 신체검사서 이름의 「(2026. 6.)」은 검진일로 씁니다.<br>여러 강사의 폴더가 든 ZIP은 <b>강사별로 나눠서</b> 목록에 넣습니다. 이미 있는 강사(같은 이름)는 <b>비어 있는 칸만</b> 채우고 적어 둔 내용은 바꾸지 않습니다.<br>PDF로 낸 이력서·신분증과 스캔본은 글자를 읽지 못하니 직접 넣어 주세요.</span></span>
       <div class="s" id="impText"></div>
       <div class="impprog"><i id="impBar"></i></div>
-      <input type="file" id="impFile" multiple accept=".zip,.hwp,.hwpx,.pdf,.jpg,.jpeg,.png" hidden></div>
+      <div class="s" style="margin-top:6px"><button type="button" class="ghost sm" id="impPickFiles">파일 선택</button> <button type="button" class="ghost sm" id="impPickDir">폴더 선택</button></div>
+      <input type="file" id="impFile" multiple accept=".zip,.hwp,.hwpx,.pdf,.jpg,.jpeg,.png" hidden>
+      <input type="file" id="impDir" webkitdirectory multiple hidden></div>
     <div class="card">
       <h3>강사 구분</h3>
       <div class="row" style="margin:0">
@@ -829,7 +831,7 @@
 <script src="ops.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-2';
+var APP_VERSION = '2026.11.20-3';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -2228,7 +2230,7 @@ function bindOpsMail(){
 
 /* ---------- 서류 불러오기 ---------- */
 var importing=false;
-async function readFiles(list, onProg){ var out=[]; for(var i=0;i<list.length;i++){ var f=list[i]; if(onProg) onProg(i, list.length, f.name); out.push({name:f.name, path:f.webkitRelativePath||f.name, bytes:new Uint8Array(await f.arrayBuffer())}); } if(onProg) onProg(list.length, list.length, ''); return out; }
+async function readFiles(list, onProg){ var out=[]; for(var i=0;i<list.length;i++){ var f=list[i]; if(onProg) onProg(i, list.length, f.name); out.push({name:f.name, path:f._rel||f.webkitRelativePath||f.name, bytes:new Uint8Array(await f.arrayBuffer())}); } if(onProg) onProg(list.length, list.length, ''); return out; }
 async function normalizeImg(kind, v){
   // 다른 서류에서 꺼낸 그림도 올린 사진처럼 손질 (서명 배경 투명·여백 자르기, 사진 3×4)
   try{ var r=await processImage(kind, new Blob([v.data],{type:v.ext==='png'?'image/png':'image/jpeg'})); return { data:new Uint8Array(await r.blob.arrayBuffer()), ext:r.ext, pxW:r.pxW, pxH:r.pxH }; }
@@ -2306,8 +2308,11 @@ async function importFiles(list){
   finally{ importing=false; $('imp').classList.remove('busy'); $('impText').textContent=''; $('impBar').style.width='0'; }
 }
 function bindImport(){
-  $('imp').addEventListener('click', function(e){ if(e.target.closest('.hint.tip')) return; $('impFile').click(); });
+  $('imp').addEventListener('click', function(e){ if(e.target.closest('.hint.tip') || e.target.closest('button')) return; $('impFile').click(); });
+  $('impPickFiles').onclick=function(){ $('impFile').click(); };
+  $('impPickDir').onclick=function(){ $('impDir').click(); };
   $('impFile').addEventListener('change', function(){ var l=Array.prototype.slice.call($('impFile').files); $('impFile').value=''; importFiles(l); });
+  $('impDir').addEventListener('change', function(){ var l=Array.prototype.slice.call($('impDir').files).filter(okImportFile); $('impDir').value=''; if(!l.length){ toast('폴더에서 불러올 파일(ZIP·한글·PDF·JPG·PNG)을 찾지 못했습니다'); return; } importFiles(l); });
   $('impClose').onclick=function(){ $('impDlg').classList.remove('on'); };
   var depth=0, ov=$('overlay');
   function hasFiles(e){ return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types||[], 'Files')>=0; }
@@ -2315,10 +2320,34 @@ function bindImport(){
   document.addEventListener('dragover', function(e){ if(!hasFiles(e)) return; e.preventDefault(); var inZone=e.target.closest && e.target.closest('.drop'); ov.classList.toggle('on', !inZone); });
   document.addEventListener('dragleave', function(){ depth=Math.max(0,depth-1); if(!depth) ov.classList.remove('on'); });
   document.addEventListener('drop', function(e){ depth=0; ov.classList.remove('on'); if(!hasFiles(e)) return; if(e.target.closest && e.target.closest('.drop')) return; e.preventDefault();
-    var l=Array.prototype.slice.call(e.dataTransfer.files);
-    // 엑셀만 놓으면 운영현황으로
-    if(l.length && l.every(function(f){ return /\.(xlsx|xlsm|xls)$/i.test(f.name); })){ go('ops'); loadOpsFiles(l); return; }
-    importFiles(l); });
+    // 폴더가 섞여 있으면 폴더 안 파일까지 모두 읽는다(entry 는 drop 이벤트 안에서 바로 받아 둬야 한다)
+    var ents=Array.prototype.map.call(e.dataTransfer.items||[], function(it){ return it.kind==='file' && it.webkitGetAsEntry ? it.webkitGetAsEntry() : null; });
+    var hasDir=ents.some(function(en){ return en && en.isDirectory; });
+    var go2=function(l){
+      // 엑셀만 놓으면 운영현황으로
+      if(l.length && l.every(function(f){ return /\.(xlsx|xlsm|xls)$/i.test(f.name); })){ go('ops'); loadOpsFiles(l); return; }
+      if(hasDir){ l=l.filter(okImportFile); if(!l.length){ toast('폴더에서 불러올 파일(ZIP·한글·PDF·JPG·PNG)을 찾지 못했습니다'); return; } }
+      importFiles(l);
+    };
+    if(!hasDir){ go2(Array.prototype.slice.call(e.dataTransfer.files)); return; }
+    $('impText').textContent='폴더 읽는 중…';
+    entriesToFiles(ents.filter(Boolean)).then(go2, function(err){ console.error(err); toast('폴더를 읽지 못했습니다: '+(err.message||err)); });
+  });
+}
+
+function okImportFile(f){ return /\.(zip|hwp|hwpx|pdf|jpe?g|png)$/i.test(f.name) && !/^(\.|~\$)/.test(f.name); }
+// 끌어다 놓은 폴더(FileSystemEntry)를 파일 목록으로 펼친다. 파일마다 _rel 에 상대 경로를 붙인다.
+async function entriesToFiles(entries){
+  var out=[];
+  async function walk(en, base){
+    if(en.isFile){ var f=await new Promise(function(res, rej){ en.file(res, rej); }); try{ f._rel=base+f.name; }catch(e){} out.push(f); return; }
+    if(!en.isDirectory) return;
+    var rd=en.createReader(), all=[];
+    for(;;){ var part=await new Promise(function(res, rej){ rd.readEntries(res, rej); }); if(!part.length) break; all=all.concat(part); }
+    for(var i=0;i<all.length;i++) await walk(all[i], base+en.name+'/');
+  }
+  for(var i=0;i<entries.length;i++) await walk(entries[i], '');
+  return out;
 }
 
 var toastT=null;

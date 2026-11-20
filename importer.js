@@ -275,11 +275,16 @@
       if (/\.zip$/i.test(f.name)) {
         var zip = await env.JSZip.loadAsync(f.bytes, { decodeFileName: decodeName });
         var names = Object.keys(zip.files);
+        // 폴더 안에 있던 ZIP 이나, 안에 폴더 없이 파일만 든 ZIP 은 ZIP 이름을 폴더 이름으로 붙인다
+        var fnames = names.filter(function (n) { return !zip.files[n].dir && !/(^|\/)(__MACOSX|\.DS_Store)/i.test(n); });
+        var loose = fnames.some(function (n) { return n.indexOf('/') < 0; });
+        var zbase = String(f.path || f.name).replace(/\.zip$/i, '');
+        var pre = !f.nested && (loose || zbase.indexOf('/') >= 0) ? zbase + '/' : '';
         for (var j = 0; j < names.length; j++) {
           var e = zip.files[names[j]]; if (e.dir) continue;
           var b = await e.async('uint8array');
-          if (/\.zip$/i.test(names[j])) { (await expand(env, [{ name: names[j], bytes: b }])).forEach(function (x) { out.push({ path: names[j].replace(/\.zip$/i, '') + '/' + x.path, bytes: x.bytes }); }); }
-          else out.push({ path: names[j], bytes: b });
+          if (/\.zip$/i.test(names[j])) { (await expand(env, [{ name: names[j], bytes: b, nested: true }])).forEach(function (x) { out.push({ path: pre + names[j].replace(/\.zip$/i, '') + '/' + x.path, bytes: x.bytes }); }); }
+          else out.push({ path: pre + names[j], bytes: b });
         }
       } else out.push({ path: f.path || f.name, bytes: f.bytes });
     }

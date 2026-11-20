@@ -940,7 +940,7 @@
 <div class="modal" id="drvDlg"><div class="box wide">
   <h3>공유드라이브에서 제출서류 불러오기</h3>
   <p class="note">강사가 보낸 ZIP이나 강사별 폴더를 체크하고 불러오기를 누르세요. 강사 이름을 넣고 Enter(또는 「전체 폴더에서 찾기」)를 누르면 대학별 폴더까지 모두 찾습니다. 여러 개를 한꺼번에 고를 수 있습니다. 폴더 이름을 누르면 안으로 들어갑니다. 「등록됨」은 이미 강사 목록에 있는 이름입니다.</p>
-  <div class="row" style="margin:0 0 8px;gap:8px"><span id="drvPath" class="hint" style="font-size:13px"></span><input type="text" id="drvQ" placeholder="이름으로 찾기" autocomplete="off" style="margin-left:auto;width:200px"><button type="button" class="ghost sm" id="drvAll" title="강사서류 폴더 전체(호서대·상명대·유원대·연암대·단국대·전체 강사 서류)에서 찾기">전체 폴더에서 찾기</button></div>
+  <div class="row" style="margin:0 0 8px;gap:8px"><span id="drvPath" class="hint" style="font-size:13px"></span><input type="text" id="drvQ" placeholder="이름으로 찾기" autocomplete="off" style="margin-left:auto;width:200px"><label class="hint" style="font-size:12.5px;color:var(--ink)"><input type="checkbox" id="drvNew"> 안 불러온 것만</label><button type="button" class="ghost sm" id="drvAll" title="강사서류 폴더 전체(호서대·상명대·유원대·연암대·단국대·전체 강사 서류)에서 찾기">전체 폴더에서 찾기</button></div>
   <div class="pscroll" id="drvList"></div>
   <div class="act"><button type="button" class="ghost" id="drvClose">닫기</button><button type="button" id="drvGo" disabled>불러오기</button></div>
 </div></div>
@@ -956,7 +956,7 @@
 <script src="pdf-lib.min.js"></script>
 <script src="hwpcore.js"></script>
 <script src="forms.js"></script>
-<script src="importer.js"></script>
+<script src="importer.js?v=14"></script>
 <script src="templates.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="ops.js"></script>
@@ -964,7 +964,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-13';
+var APP_VERSION = '2026.11.20-14';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1065,7 +1065,7 @@ function buildPdfs(){
     row.querySelector('.clr').onclick=function(){ delete cur.pdfs[k]; clearFix(cur, k); if(k==='exam') clearFix(cur, 'tb'); save(); renderPdfs(); refresh(); renderList(); };
     inp.onchange=async function(){
       var list=[];
-      for(var i=0;i<inp.files.length;i++){ var f=inp.files[i]; list.push(await toPdfEntry({name:f.name, type:f.type, data:new Uint8Array(await f.arrayBuffer())})); }
+      for(var i=0;i<inp.files.length;i++){ var f=inp.files[i]; var pe=await toPdfEntry({name:f.name, type:f.type, data:new Uint8Array(await f.arrayBuffer())}); pe.at=Date.now(); list.push(pe); }
       var meta=PDFS.filter(function(p){return p.k===k;})[0];
       inp.value=''; toast('PDF 변환·용량 줄이는 중…');
       await shrinkPdfList(list);
@@ -1775,6 +1775,7 @@ function checks(p){
   var out=[], rrn=(p.rrn||'').replace(/\D/g,''), sch=schoolsOf(p);
   function add(sec, lv, t){ out.push({sec:sec, lv:lv, t:t}); }
   p.name.trim() ? add('info','ok','성명') : add('info','err','성명을 넣어 주세요');
+  if(p.name.trim() && people.some(function(x){ return x!==p && x.name.replace(/\s/g,'')===p.name.replace(/\s/g,''); })) add('info','warn','같은 이름의 강사가 또 있습니다. 같은 사람이면 한쪽을 지워 주세요');
   rrn.length===13 ? add('info','ok','주민등록번호') : add('info','err','주민등록번호 13자리를 넣어 주세요');
   (p.phone||'').replace(/\D/g,'').length>=10 ? add('info','ok','연락처') : add('info','err','연락처를 넣어 주세요');
   p.address ? add('info','ok','주소') : add('info','warn','주소가 비어 있습니다 (이력서)');
@@ -2398,7 +2399,7 @@ function bindOpsMail(){
 
 /* ---------- 서류 불러오기 ---------- */
 var importing=false;
-async function readFiles(list, onProg){ var out=[]; for(var i=0;i<list.length;i++){ var f=list[i]; if(onProg) onProg(i, list.length, f.name); out.push({name:f.name, path:f._rel||f.webkitRelativePath||f.name, bytes:new Uint8Array(await f.arrayBuffer())}); } if(onProg) onProg(list.length, list.length, ''); return out; }
+async function readFiles(list, onProg){ var out=[]; for(var i=0;i<list.length;i++){ var f=list[i]; if(onProg) onProg(i, list.length, f.name); out.push({name:f.name, path:f._rel||f.webkitRelativePath||f.name, at:f.lastModified||0, bytes:new Uint8Array(await f.arrayBuffer())}); } if(onProg) onProg(list.length, list.length, ''); return out; }
 async function normalizeImg(kind, v){
   // 다른 서류에서 꺼낸 그림도 올린 사진처럼 손질 (서명 배경 투명·여백 자르기, 사진 3×4)
   try{ var r=await processImage(kind, new Blob([v.data],{type:v.ext==='png'?'image/png':'image/jpeg'})); return { data:new Uint8Array(await r.blob.arrayBuffer()), ext:r.ext, pxW:r.pxW, pxH:r.pxH }; }
@@ -2415,7 +2416,8 @@ async function importFiles(list){
   prog(0, 15, 0, list.length, '파일 읽는 중… 0/'+list.length);
   try{
     var files=await readFiles(list, function(i, n, nm){ prog(0, 15, i, n, '파일 읽는 중… '+i+'/'+n+(nm?' · '+nm:'')); });
-    var env={HwpCore:HwpCore, deps:{CFB:CFB, pako:pako}, JSZip:JSZip, DOMParser:DOMParser, imageToJpeg:imageToJpeg};
+    var known={}; people.forEach(function(p){ var n=String(p.name||'').replace(/\s/g,''); if(n) known[n]=1; }); (ops.rows||[]).forEach(function(r){ (r.people||[]).forEach(function(x){ var n=String(x.name||'').replace(/\s/g,''); if(/^[가-힣]{2,4}$/.test(n)) known[n]=1; }); });
+    var env={HwpCore:HwpCore, deps:{CFB:CFB, pako:pako}, JSZip:JSZip, DOMParser:DOMParser, imageToJpeg:imageToJpeg, known:Object.keys(known)};
     var found=await Importer.readDrop(env, files, b64(TEMPLATES['1. 이력서 (강사명).hwp']), function(st, i, n, nm){
       if(st==='expand') prog(15, 35, i, n, 'ZIP 푸는 중… '+i+'/'+n+(nm?' · '+nm:''));
       else prog(35, 80, i, n, '강사별 서류 읽는 중… '+i+'/'+n+(nm?' · '+nm:''));
@@ -2424,7 +2426,14 @@ async function importFiles(list){
     for(const r of found){
       fi++; prog(80, 100, fi-1, found.length, '반영하는 중… '+fi+'/'+found.length+(r.name?' · '+r.name:''));
       var target=null, isNew=false;
-      if(r.name) target=people.filter(function(p){ return p.name.replace(/\s/g,'')===r.name; })[0];
+      var dupNote='';
+      if(r.name){
+        // 같은 이름이라도 주민번호(앞 7자리)나 연락처가 다르면 다른 사람(동명이인)으로 본다
+        var dg=function(v){ return String(v||'').replace(/\D/g,''); }, rr=dg(r.rrn).slice(0,7), rph=dg(r.phone);
+        var same=people.filter(function(p){ return p.name.replace(/\s/g,'')===r.name; });
+        target=same.filter(function(p){ var pr=dg(p.rrn).slice(0,7), pp=dg(p.phone); return !((rr.length===7 && pr.length===7 && rr!==pr) || (!(rr.length===7 && pr.length===7) && rph.length>=10 && pp.length>=10 && rph!==pp)); })[0] || null;
+        if(!target && same.length){ dupNote='같은 이름의 강사가 이미 있지만 주민번호나 연락처가 달라 따로 등록했습니다. 같은 사람이면 한쪽을 지워 주세요'; }
+      }
       if(!target && found.length===1 && cur && !cur.name.trim()) target=cur;
       if(!target){ target=blank(); isNew=true; people.push(target); }
       var got=[];
@@ -2451,16 +2460,24 @@ async function importFiles(list){
       }
       var imgNames={sign:'서명',photo:'사진',idcard:'신분증',bank:'통장'};
       for(const k of Object.keys(r.imgs)){ if(!target.imgs[k]){ target.imgs[k] = await normalizeImg(k, r.imgs[k]); got.push(imgNames[k]); } }
-      var pdfN=0;
+      var pdfN=0, repl=[];
       Object.keys(r.pdfs).forEach(function(k){
         var have=(target.pdfs[k]||[]).map(function(f){return f.name;}), meta=PDFS.filter(function(p){return p.k===k;})[0];
-        r.pdfs[k].forEach(function(f){ if(have.indexOf(f.name)>=0) return; if(!meta.multi && (target.pdfs[k]||[]).length) return; (target.pdfs[k]=target.pdfs[k]||[]).push({name:f.name,type:f.type,data:f.data}); pdfN++; });
+        r.pdfs[k].forEach(function(f){
+          if(have.indexOf(f.name)>=0) return;
+          var cur0=(target.pdfs[k]||[])[0];
+          if(!meta.multi && cur0){
+            // 한 장짜리 서류는 수정일이 더 최근인 파일로 바꾼다
+            if((f.at||0) > (cur0.at||0) && f.at){ target.pdfs[k]=[{name:f.name,type:f.type,data:f.data,at:f.at}]; repl.push(meta.no+'. '+meta.t); pdfN++; }
+            return;
+          }
+          (target.pdfs[k]=target.pdfs[k]||[]).push({name:f.name,type:f.type,data:f.data,at:f.at||0}); pdfN++; });
       });
       if(r.tbIn41 && !(target.pdfs.tb||[]).length){ target.tbIn41=true; got.push('4-2 잠복결핵(4-1에 포함)'); }
       if(pdfN){ prog(80, 100, fi-1, found.length, 'PDF 용량 줄이는 중… '+fi+'/'+found.length+(target.name?' · '+target.name:'')); await shrinkPersonPdfs(target); got.push('PDF '+pdfN+'개'); }
       if(r.examDate && !target.examDate){ target.examDate=r.examDate; got.push('검진일'+(r.examGuess?'(월만)':'')); }
       target.updated=Date.now(); dbPut(target); lastTarget=target;
-      var notes=r.notes.slice(); if(schNote) notes.unshift(schNote);
+      var notes=r.notes.slice(); if(schNote) notes.unshift(schNote); if(dupNote) notes.unshift(dupNote); if(repl.length) notes.push('더 최근 파일로 바꿈: '+repl.join(', '));
       var ymd=function(v){ var m=String(v||'').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m ? m[1]+'-'+(+m[2])+'-'+(+m[3]) : String(v||'').replace(/\D/g,''); };
       if(r.birth && r.rrn && ymd(Forms.birthFromRrn(r.rrn))!==ymd(r.birth)) notes.push('이력서 생년월일('+r.birth+')이 주민번호와 다릅니다');
       if(r.examGuess) notes.push('검진일은 파일 이름의 연·월만 보고 1일로 넣었습니다. 서류의 정확한 날짜로 고쳐 주세요');
@@ -2472,7 +2489,8 @@ async function importFiles(list){
     renderAll();
     $('impRes').innerHTML = html.join('') || '<div class="impp">읽을 수 있는 서류가 없었습니다.</div>';
     $('impDlg').classList.add('on');
-  }catch(e){ console.error(e); toast('불러오지 못했습니다: '+(e.message||e)); }
+    return found.length;
+  }catch(e){ console.error(e); toast('불러오지 못했습니다: '+(e.message||e)); return -1; }
   finally{ importing=false; $('imp').classList.remove('busy'); $('impText').textContent=''; $('impBar').style.width='0'; }
 }
 function bindImport(){
@@ -2589,10 +2607,14 @@ function sySave(){ kvPut('sync', { on: sy.on, me: sy.me, rev: sy.rev, dirty: sy.
 function syMark(id){ if(!id) return; if(!(sy.dirty[id] && sy.dirty[id].del)) sy.dirty[id] = 1; sySave(); syKick(); }
 function syMarkDel(id){ if(!id) return; sy.dirty[id] = { del: 1 }; delete sy.conf[id]; sy.dup = sy.dup.filter(function(x){ return x !== id; }); sySave(); syKick(); }
 function syKick(){ if(!syReady()) return; clearTimeout(syPushT); syPushT = setTimeout(function(){ syRun(false); }, 4000); syRender(); }
+// 공유 폴더의 강사별 폴더 이름: 홍길동(주강사)
+function syDirName(p){ return cleanFile(String(p.name||'').trim()+'('+(p.role||'')+')'); }
 function syHolders(p){
   var out = [];
-  Object.keys(p.imgs||{}).forEach(function(k){ var v = p.imgs[k]; if(v) out.push({ h: v, name: k, ext: v.ext || 'jpg' }); });
-  Object.keys(p.pdfs||{}).forEach(function(k){ (p.pdfs[k]||[]).forEach(function(f, i){ if(f) out.push({ h: f, name: k+'_'+(i+1), ext: ((f.name||'').match(/\.([a-z0-9]+)$/i)||['','pdf'])[1] }); }); });
+  Object.keys(p.imgs||{}).forEach(function(k){ var v = p.imgs[k], m = IMG_KEYS.filter(function(x){ return x.k === k; })[0]; if(v) out.push({ h: v, name: k, label: m ? m.t : k, ext: v.ext || 'jpg' }); });
+  Object.keys(p.pdfs||{}).forEach(function(k){ var m = PDFS.filter(function(x){ return x.k === k; })[0], arr = p.pdfs[k]||[]; arr.forEach(function(f, i){ if(!f) return;
+    var lb = m && m.multi ? cleanFile(String(f.name||'').replace(/\.[a-z0-9]+$/i,'')) || (m.t+'_'+(i+1)) : (m ? m.no+'. '+m.t : k)+(arr.length > 1 ? '_'+(i+1) : '');
+    out.push({ h: f, name: k+'_'+(i+1), label: lb, ext: ((f.name||'').match(/\.([a-z0-9]+)$/i)||['','pdf'])[1] }); }); });
   return out;
 }
 function syMissing(p){ return syHolders(p).filter(function(x){ return !x.h.data && x.h._fid; }); }
@@ -2658,14 +2680,14 @@ async function syPushOne(id){
   var p = people.filter(function(x){ return x.id === id; })[0];
   if(!p){ delete sy.dirty[id]; return; }
   if(!String(p.name||'').trim() || sy.dup.indexOf(id) >= 0 || sy.conf[id]) return;   // 이름 없는 강사·같은 이름·충돌은 올리지 않음
-  var snap = p.updated, base = String(p.name||'').trim();
+  var snap = p.updated, dirName = syDirName(p);
   for(const x of syHolders(p)){
     if(x.h._fid || !x.h.data) continue;
-    var r0 = await gasCall('fput', { name: base+'_'+x.name+'.'+x.ext, mime: x.ext === 'pdf' ? 'application/pdf' : x.ext === 'png' ? 'image/png' : 'image/jpeg', b64: u8ToB64(x.h.data) });
-    x.h._fid = r0.fid; dbPut(p, true);
+    var r0 = await gasCall('fput', { name: x.label+'.'+x.ext, dir: p._dir || '', dirName: dirName, mime: x.ext === 'pdf' ? 'application/pdf' : x.ext === 'png' ? 'image/png' : 'image/jpeg', b64: u8ToB64(x.h.data) });
+    x.h._fid = r0.fid; p._dir = r0.dir; dbPut(p, true);
   }
   var body = syPlain(p); delete body._rev; delete body._by; delete body._at;
-  var r = await gasCall('put', { person: body, baseRev: p._rev, by: sy.me, force: !!syPushOne.force[id] });
+  var r = await gasCall('put', { person: body, baseRev: p._rev, by: sy.me, dirName: dirName, force: !!syPushOne.force[id] });
   delete syPushOne.force[id];
   if(r.conflict){ sy.conf[id] = r.current; return; }
   p._rev = r.rev; p._by = sy.me; p._at = Date.now(); dbPut(p, true);
@@ -2728,8 +2750,12 @@ function bindSync(){
 }
 /* ---------- 공유드라이브에서 제출서류 불러오기 ----------
    앱스 스크립트로 공유드라이브 강사서류 폴더를 둘러보고, 고른 ZIP·폴더를 조각으로 받아 「제출서류 불러오기」로 넘긴다 */
-var drv = { folder: '', path: [], items: [], pick: {}, q: '', found: '' }, DRV_CHUNK = 6*1024*1024;
+var drv = { folder: '', path: [], items: [], pick: {}, q: '', found: '', onlyNew: false }, DRV_CHUNK = 6*1024*1024;
 function drvSize(n){ return n == null ? '' : n >= 1048576 ? (Math.round(n/104857.6)/10)+'MB' : Math.max(1, Math.round(n/1024))+'KB'; }
+// 불러온 적 있는지: done(불러옴) · changed(불러온 뒤 바뀜) · ''(안 불러옴)
+function drvState(x){ if(!x.imp) return ''; return x.at && x.imp.at && x.at > x.imp.at + 60000 ? 'changed' : 'done'; }
+function drvImpTag(x){ var st = drvState(x); if(!st) return ''; var d = new Date(x.imp.t), t = (d.getMonth()+1)+'/'+d.getDate();
+  return st === 'done' ? ' <span class="badge sent">불러옴 '+t+(x.imp.by ? ' · '+esc(x.imp.by) : '')+'</span>' : ' <span class="badge wait">불러온 뒤 바뀜 ('+t+')</span>'; }
 function drvKnown(name){ var n = String(name||'').replace(/\s/g,''); return people.filter(function(p){ var m = String(p.name||'').replace(/\s/g,''); return m.length >= 2 && n.indexOf(m) >= 0; })[0]; }
 async function drvOpen(id){
   if(!gasOn()){ toast('「운영현황 → 구글 시트 연동」에서 연동 주소와 접근 코드를 먼저 넣어 주세요'); return; }
@@ -2749,10 +2775,10 @@ async function drvSearch(){
 function drvRender(){
   if(drv.found){ $('drvPath').innerHTML = '전체 폴더에서 「<b>'+esc(drv.found)+'</b>」 찾은 결과 '+drv.items.length+'개 · <a href="#" data-drvp="'+(drv.folder||'')+'">폴더 보기로 돌아가기</a>'; }
   else $('drvPath').innerHTML = drv.path.map(function(p, i){ return i === drv.path.length-1 ? '<b>'+esc(p.name)+'</b>' : '<a href="#" data-drvp="'+p.id+'">'+esc(p.name)+'</a>'; }).join(' › ');
-  var q = drv.q.replace(/\s/g,''), list = drv.items.filter(function(x){ return !q || x.name.replace(/\s/g,'').indexOf(q) >= 0; });
+  var q = drv.q.replace(/\s/g,''), list = drv.items.filter(function(x){ return (!q || x.name.replace(/\s/g,'').indexOf(q) >= 0) && (!drv.onlyNew || drvState(x) !== 'done'); });
   $('drvList').innerHTML = list.length ? '<table class="ptable"><tr><th style="width:28px"></th><th>이름</th>'+(drv.found ? '<th style="width:200px">위치</th>' : '')+'<th style="width:80px">크기</th><th style="width:90px">수정일</th></tr>'+list.map(function(x){
     var k = drvKnown(x.name);
-    return '<tr><td><input type="checkbox" data-drvk="'+x.id+'"'+(drv.pick[x.id]?' checked':'')+'></td><td>'+(x.dir ? '<span class="pill">폴더</span> <a href="#" data-drvf="'+x.id+'">'+esc(x.name)+'</a> <small class="hint">폴더째 불러오려면 체크</small>' : esc(x.name))+(k ? ' <span class="badge ok">등록됨 · '+esc(k.name)+'</span>' : '')+'</td>'+(drv.found ? '<td><small>'+esc(x.where||'')+'</small></td>' : '')+'<td>'+(x.dir ? '' : drvSize(x.size))+'</td><td>'+(x.at ? new Date(x.at).toLocaleDateString('ko-KR') : '')+'</td></tr>';
+    return '<tr><td><input type="checkbox" data-drvk="'+x.id+'"'+(drv.pick[x.id]?' checked':'')+'></td><td>'+(x.dir ? '<span class="pill">폴더</span> <a href="#" data-drvf="'+x.id+'">'+esc(x.name)+'</a> <small class="hint">폴더째 불러오려면 체크</small>' : esc(x.name))+(k ? ' <span class="badge ok">등록됨 · '+esc(k.name)+'</span>' : '')+drvImpTag(x)+'</td>'+(drv.found ? '<td><small>'+esc(x.where||'')+'</small></td>' : '')+'<td>'+(x.dir ? '' : drvSize(x.size))+'</td><td>'+(x.at ? new Date(x.at).toLocaleDateString('ko-KR') : '')+'</td></tr>';
   }).join('')+'</table>' : '<p class="hint">불러올 수 있는 파일(ZIP·한글·PDF·JPG·PNG)이나 폴더가 없습니다.</p>';
   var n = Object.keys(drv.pick).length; $('drvGo').disabled = !n; $('drvGo').textContent = n ? n+'개 불러오기' : '불러오기';
 }
@@ -2773,18 +2799,23 @@ async function drvImport(){
   try{
     $('impText').textContent = '공유드라이브 목록 읽는 중…';
     for(const x of sel){
-      if(x.dir){ var t = await gasCall('dtree', { folder: x.id }); t.files.forEach(function(f){ jobs.push({ id: f.id, name: f.path.split('/').pop(), rel: f.path, size: f.size }); }); }
-      else jobs.push({ id: x.id, name: x.name, rel: '', size: x.size });
+      if(x.dir){ var t = await gasCall('dtree', { folder: x.id }); t.files.forEach(function(f){ jobs.push({ id: f.id, name: f.path.split('/').pop(), rel: f.path, size: f.size, at: f.at || x.at }); }); }
+      else jobs.push({ id: x.id, name: x.name, rel: '', size: x.size, at: x.at });
     }
     var total = jobs.reduce(function(s, j){ return s + (j.size||0); }, 0), done = 0;
     for(var i = 0; i < jobs.length; i++){
       var j = jobs[i], base = done;
       var u = await drvFetch(j.id, j.size, function(g){ var pct = total ? Math.round((base+g)/total*100) : 0; $('impBar').style.width = Math.round(pct*0.15)+'%'; $('impText').textContent = '공유드라이브에서 받는 중… '+(i+1)+'/'+jobs.length+' · '+j.name+' ('+drvSize(base+g)+' / '+drvSize(total)+')'; });
       done += u.length;
-      var f = new File([u], j.name); if(j.rel) f._rel = j.rel; files.push(f);
+      var f = new File([u], j.name, { lastModified: j.at || Date.now() }); if(j.rel) f._rel = j.rel; files.push(f);
     }
   }catch(e){ console.error(e); $('impText').textContent = ''; $('impBar').style.width = '0'; toast('공유드라이브에서 받지 못했습니다: '+(e.message||e)); return; }
-  importFiles(files.filter(okImportFile));
+  var n = await importFiles(files.filter(okImportFile));
+  if(n > 0){
+    // 불러온 항목을 공유 자료에 기록 → 모든 직원 화면에 「불러옴」 표시
+    sel.forEach(function(x){ x.imp = { t: Date.now(), by: sy.me || '', at: x.at || 0 }; });
+    if(gasInfo && gasInfo.data) gasCall('dmark', { items: sel.map(function(x){ return { id: x.id, at: x.at || 0 }; }), by: sy.me || '' }).catch(function(e){ console.error(e); });
+  }
 }
 function bindDrv(){
   $('impPickDrive').onclick = function(){ drvOpen(drv.folder); };
@@ -2793,6 +2824,7 @@ function bindDrv(){
   $('drvQ').addEventListener('input', function(){ if(drv.found) return; drv.q = $('drvQ').value; drvRender(); });
   $('drvQ').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); drvSearch(); } });
   $('drvAll').onclick = drvSearch;
+  $('drvNew').addEventListener('change', function(){ drv.onlyNew = $('drvNew').checked; drvRender(); });
   $('drvDlg').addEventListener('click', function(e){
     var a = e.target.closest('[data-drvf],[data-drvp]'); if(a){ e.preventDefault(); $('drvQ').value = ''; drv.q = ''; drvOpen(a.dataset.drvf || a.dataset.drvp); return; }
     var c = e.target.closest('[data-drvk]'); if(c){ if(c.checked) drv.pick[c.dataset.drvk] = 1; else delete drv.pick[c.dataset.drvk]; drvRender(); }

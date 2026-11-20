@@ -206,7 +206,7 @@
           else r.notes.push('「' + name + '」: 이미지를 PDF로 변환하지 못해 원본 그대로 넣었습니다');
         }
         if (slot.both) { r.tbIn41 = true; r.notes.push('「' + base(f.path) + '」: 채용신체검사서와 잠복결핵 검사 확인서가 한 파일에 있어 4-1에 넣고 4-2는 「4-1에 포함」으로 처리했습니다. 증빙서류(PDF) 화면의 「쪽 나누기」로 분리할 수 있습니다'); }
-        (r.pdfs[slot.k] = r.pdfs[slot.k] || []).push({ name: name, type: 'application/pdf', data: data, from: f.path });
+        (r.pdfs[slot.k] = r.pdfs[slot.k] || []).push({ name: name, type: 'application/pdf', data: data, from: f.path, at: f.at || 0 });
         if (slot.k === 'exam' && !r.examDate) {
           var dm = base(f.path).match(/(20\d{2})\s*[.\-년]\s*(\d{1,2})(?:\s*[.\-월]\s*(\d{1,2}))?/);
           if (dm) { r.examDate = dateIso(dm[1], dm[2], dm[3] || 1); r.examGuess = !dm[3]; }
@@ -255,15 +255,15 @@
     while (segs.length && segs.every(function (s) { return s.length > strip + 1 && s[strip] === segs[0][strip]; })) strip++;
     var wrapper = strip ? segs[0][strip - 1] : '';
     var top = {}, loose = [];
-    items.forEach(function (f, i) { var s = segs[i].slice(strip); if (s.length === 1) loose.push(f); else (top[s[0]] = top[s[0]] || []).push({ path: s.slice(1).join('/'), bytes: f.bytes }); });
+    items.forEach(function (f, i) { var s = segs[i].slice(strip); if (s.length === 1) loose.push(f); else (top[s[0]] = top[s[0]] || []).push({ path: s.slice(1).join('/'), bytes: f.bytes, at: f.at }); });
     var isPersonDir = function (n) { return /[가-힣]{2,4}/.test(n.replace(/초등학교|스캔본|증명서|서류|자격|경력|학력|신체|결핵|사본|이력|동의|서약/g, '')) && !/초등학교|스캔본|증명|사본/.test(n); };
     var dirs = Object.keys(top), personDirs = dirs.filter(isPersonDir);
     var hasForms = loose.some(function (f) { return /\.(hwpx?)$/i.test(f.path); });
     if (personDirs.length >= 1 && !hasForms && (personDirs.length >= 2 || dirs.length === 1)) {
       return personDirs.map(function (d) { return { hint: d, files: top[d] }; });
     }
-    var all = loose.map(function (f) { return { path: segs[items.indexOf(f)].slice(strip).join('/'), bytes: f.bytes }; });
-    dirs.forEach(function (d) { top[d].forEach(function (f) { all.push({ path: d + '/' + f.path, bytes: f.bytes }); }); });
+    var all = loose.map(function (f) { return { path: segs[items.indexOf(f)].slice(strip).join('/'), bytes: f.bytes, at: f.at }; });
+    dirs.forEach(function (d) { top[d].forEach(function (f) { all.push({ path: d + '/' + f.path, bytes: f.bytes, at: f.at }); }); });
     return [{ hint: wrapper, files: all }];
   }
   async function expand(env, files, onProg) {
@@ -282,22 +282,45 @@
         var pre = !f.nested && (loose || zbase.indexOf('/') >= 0) ? zbase + '/' : '';
         for (var j = 0; j < names.length; j++) {
           var e = zip.files[names[j]]; if (e.dir) continue;
-          var b = await e.async('uint8array');
-          if (/\.zip$/i.test(names[j])) { (await expand(env, [{ name: names[j], bytes: b, nested: true }])).forEach(function (x) { out.push({ path: pre + names[j].replace(/\.zip$/i, '') + '/' + x.path, bytes: x.bytes }); }); }
-          else out.push({ path: pre + names[j], bytes: b });
+          var b = await e.async('uint8array'), eat = f.at || (e.date ? e.date.getTime() : 0);
+          if (/\.zip$/i.test(names[j])) { (await expand(env, [{ name: names[j], bytes: b, nested: true }])).forEach(function (x) { out.push({ path: pre + names[j].replace(/\.zip$/i, '') + '/' + x.path, at: eat, bytes: x.bytes }); }); }
+          else out.push({ path: pre + names[j], bytes: b, at: eat });
         }
-      } else out.push({ path: f.path || f.name, bytes: f.bytes });
+      } else out.push({ path: f.path || f.name, bytes: f.bytes, at: f.at || 0 });
     }
     return out;
   }
+  // 아는 강사 이름(운영현황·강사 목록)이 들어간 폴더를 강사 폴더로 본다. 학기·학교 폴더처럼 강사 폴더가 깊이 있어도 찾는다.
+  // 강사 폴더가 2개 이상 나올 때만 쓰고, 아니면 기존 방식(groupPeople)
+  function groupByKnown(items, known) {
+    if (!known || !known.length) return null;
+    var names = known.filter(function (n) { return n && n.length >= 2; }).sort(function (a, b) { return b.length - a.length; });
+    var groups = {}, order = [], rest = [];
+    items.forEach(function (f) {
+      if (/(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db)/i.test(f.path) || /\/$/.test(f.path)) return;
+      var segs = f.path.split('/').filter(Boolean), hit = -1, who = '';
+      for (var i = 0; i < segs.length - 1 && hit < 0; i++) { var sq = segs[i].replace(/\s/g, ''); for (var k = 0; k < names.length; k++) if (sq.indexOf(names[k]) >= 0) { hit = i; who = names[k]; break; } }
+      if (hit < 0) { rest.push(f); return; }
+      var key = segs.slice(0, hit + 1).join('/');
+      if (!groups[key]) { groups[key] = { hint: segs[hit], who: who, files: [] }; order.push(key); }
+      groups[key].files.push({ path: segs.slice(hit + 1).join('/'), bytes: f.bytes, at: f.at });
+    });
+    if (order.length < 2) return null;
+    var out = order.map(function (k) { return groups[k]; });
+    if (rest.length) out = out.concat(groupPeople(rest));
+    return out;
+  }
   async function readDrop(env, files, tplResumeBytes, onProg) {
-    var items = await expand(env, files, onProg), groups = groupPeople(items), tpl = null;
+    var items = await expand(env, files, onProg), groups = groupByKnown(items, env.known) || groupPeople(items), tpl = null;
     if (onProg) onProg('expand', files.length, files.length, '');
     try { if (tplResumeBytes) tpl = viewHwp(env, tplResumeBytes); } catch (e) { tpl = null; }
     var people = [];
     for (var g = 0; g < groups.length; g++) {
       if (onProg) onProg('read', g, groups.length, String(groups[g].hint || '').split('/').pop());
-      people.push(await readPerson(env, groups[g].files, groups[g].hint, tpl));
+      var rp = await readPerson(env, groups[g].files, groups[g].hint, tpl), who = groups[g].who;
+      if (who && (!rp.name || rp.name.length > 4 || rp.name.indexOf(who) >= 0)) rp.name = who;
+      rp.at = groups[g].files.reduce(function (m, f) { return Math.max(m, f.at || 0); }, 0);
+      people.push(rp);
       // 화면이 멈추지 않게 강사 한 명마다 한 번 쉰다
       await new Promise(function (r) { setTimeout(r, 0); });
     }

@@ -943,7 +943,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-6';
+var APP_VERSION = '2026.11.20-7';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1728,6 +1728,13 @@ function go(p){
 }
 
 /* ---------- 확인 목록 ---------- */
+// 학교밖(초등학교 이외 기관): 운영현황 「학교밖」 파일에 있는 기관, 운영현황에 없으면 이름이 초등학교가 아닌 곳
+function isOutside(s){
+  var n=String(s||'').replace(/\s/g,''); if(!n) return false;
+  var rs=(ops.rows||[]).filter(function(r){ return String(r.school||'').replace(/\s/g,'')===n; });
+  if(rs.length) return rs.some(function(r){ return /학교\s*밖/.test(rowFile(r)); }) && !/초등학교$|초$/.test(n);
+  return !/초등학교$|초$/.test(n);
+}
 function schoolsOf(p){ return (p.schools||[]).map(function(s){return s.trim();}).filter(Boolean); }
 function formsFor(p){ return FORMS.filter(function(f){ return f.roles.indexOf(p.role)>=0 && (!f.optional || settings.include1112); }); }
 function cleanFile(s){ return String(s||'').replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,' ').trim().replace(/[. ]+$/,''); }
@@ -1768,7 +1775,14 @@ function examState(p){
 function plan(p, only){
   var root=subject(p)+'/', files=[], sch=only ? [only] : schoolsOf(p);
   formsFor(p).forEach(function(f){
-    if(f.school) sch.forEach(function(s){ files.push({form:f, school:s, key:'f'+f.no, path: root+cleanFile(s)+'/'+formName(p, f, s)}); });
+    if(f.school) sch.forEach(function(s){
+      if(isOutside(s)){   // 학교밖 기관: 0번만, 학교 폴더 없이 상위 폴더에
+        if(f.no !== '0') return;
+        var nm=formName(p, f, s), outN=sch.filter(isOutside).length;
+        if(outN>1) nm=nm.replace(/(\.[a-z]+)$/i, ' ('+cleanFile(s)+')$1');
+        files.push({form:f, school:s, key:'f'+f.no, path: root+nm}); return;
+      }
+      files.push({form:f, school:s, key:'f'+f.no, path: root+cleanFile(s)+'/'+formName(p, f, s)}); });
     else files.push({form:f, key:'f'+f.no, path: root+formName(p, f, '')});
   });
   PDFS.forEach(function(m){ (p.pdfs[m.k]||[]).forEach(function(file,i,arr){

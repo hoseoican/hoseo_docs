@@ -86,7 +86,9 @@
     var rows = d.rows.map(function (r) { return [r.place, r.program, r.target, r.role, r.hours]; });
     if (rows.length > 5) throw new Error('한 장에는 실적을 5줄까지 넣을 수 있습니다.');
     if (rows.length < 5) rows.push(['이하 여백']);
-    rows.forEach(function (r, i) { r.forEach(function (v, j) { if (v) e.push({ name: '실적' + (i + 1), find: cellp(0, 5 + i, 1 + j), text: String(v) }); }); });
+    // 프로그램명: 「[분야] 이름」이면 첫째 줄 분야, 둘째 줄 이름 (칸 안 줄바꿈 = 문자 10)
+    function prog(v) { var m = String(v).match(/^\s*(\[[^\]]*\])\s*(.+)$/); return m ? m[1] + '\n' + m[2] : String(v); }
+    rows.forEach(function (r, i) { r.forEach(function (v, j) { if (v) e.push({ name: '실적' + (i + 1), find: cellp(0, 5 + i, 1 + j), text: j === 1 ? prog(v) : String(v) }); }); });
     return e;
   }
   // deps: {CFB, pako}. template: Uint8Array. 반환: Uint8Array(.hwp)
@@ -99,7 +101,7 @@
       var p = paras.filter(e.find)[0];
       if (!p) throw new Error('양식에서 "' + e.name + '" 칸을 찾지 못했습니다.');
       if (p.text === e.text) return;
-      ops = ops.concat(setText(recs, p, e.text, dropLineSeg));
+      ops = ops.concat(setText(recs, p, e.text, dropLineSeg || e.text.indexOf('\n') >= 0));   // 칸 안 줄바꿈은 늘 다시 계산
     });
     ops.sort(function (a, b) { return b.at - a.at || (a.del ? -1 : 1); });
     ops.forEach(function (o) { if (o.del) recs.splice(o.at, 1); else recs.splice(o.at, 0, o.ins); });

@@ -436,6 +436,24 @@
     .outgrid, .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .impgrid { grid-template-columns: 1fr; }
   }
+
+  /* ⑤ 증명서 · 구글 시트 연동 */
+  #gsCard, #ctSet { max-width: 1080px; }
+  #gsSet > summary, #ctSet > summary { cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--hs-d); }
+  #gsSet > summary::marker, #ctSet > summary::marker { color: var(--hs); }
+  #ctSet > summary small { font-weight: 500; color: var(--mute); font-size: 12px; margin-left: 6px; }
+  .certgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); max-width: 1280px; margin-bottom: 12px; }
+  .g4 .span4 { grid-column: span 4; }
+  .ctg { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .ctgh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; color: var(--hs-d); }
+  .ctc { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 6px 6px; border-radius: 8px; cursor: pointer; font-size: 13px; line-height: 1.45; }
+  .ctc:hover { background: var(--hs-50); }
+  .ctc input { margin-top: 3px; }
+  .ctc small { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
+  .ctwarn { margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: #FFF4DE; color: #8A5A00; font-size: 12.5px; line-height: 1.6; }
+  .ctdone { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #F3F9F5; border: 1px solid #CFE3D7; font-size: 13px; }
+  .ctdone textarea { width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 12px; margin-top: 8px; border: 1px solid #D6CCCB; border-radius: 6px; padding: 6px; }
+  @media (max-width: 1100px) { .certgrid { grid-template-columns: 1fr; } .g4.ctform { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g4.ctform .span2, .g4.ctform .span4 { grid-column: span 2; } }
 </style>
 </head>
 <body>
@@ -469,6 +487,9 @@
     <label data-page="out"><input type="radio" name="page" value="out">서류 검토·생성<i class="st" data-sec="out"></i></label>
     <label data-page="mail"><input type="radio" name="page" value="mail">학교별 발송<i class="st" data-sec="mail"></i></label>
     <label data-page="sms"><input type="radio" name="page" value="sms">서류 보완 요청<i class="st" data-sec="sms"></i></label>
+    <div class="navg"><span>⑤</span>증명서</div>
+    <label data-page="cert"><input type="radio" name="page" value="cert">경력·출강증명서 발급<i class="st" data-sec="cert"></i></label>
+    <label data-page="certlog"><input type="radio" name="page" value="certlog">발급 내역<i class="st" data-sec="certlog"></i></label>
   </nav>
   <div class="sidefoot"><button type="button" class="bk" id="btnBackup">데이터 백업·복원<small id="bkState">백업한 적 없음</small></button><span id="storeHint"></span><span class="ver" id="verSide"></span></div>
 </aside>
@@ -527,6 +548,26 @@
     <div class="wide-drop" id="opsDrop"><b>확정 운영현황 불러오기</b> <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">확정된 운영현황 엑셀(.xlsx)을 끌어다 놓거나 눌러서 고르세요. 여러 파일(1학기·하계·2학기·동계·학교밖)을 한꺼번에 넣어도 됩니다.<br>시트 이름에 <b>「호서대」</b>가 들어간 시트가 있으면 그 시트만, 없으면 머리글이 맞는 모든 시트를 읽습니다. 「새로나 보조」 시트는 뺍니다.<br>읽는 머리글: <b>학교명(기관명)·시기·프로그램명·분야·학년·시작일·종료일·강사명(+연락처·이메일)·보조강사(+연락처)</b>, 있으면 <b>담당자·담당자 연락처·담당자 이메일</b>.<br>새로 불러오면 이전 운영현황을 바꿔 씁니다. 운영현황은 이 브라우저에만 저장됩니다.</span></span>
       <div class="s" id="opsText"></div>
       <input type="file" id="opsFile" multiple accept=".xlsx,.xlsm,.xls" hidden></div>
+    <div class="card" id="gsCard">
+      <h3>구글 시트 연동 <small id="gsState"></small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">공유드라이브의 운영현황 구글 시트를 <b>링크로 바로 읽고</b>, 증명서 발급 내역을 <b>날인대장(앵커늘봄 탭)</b>에 누적 기록합니다.<br>앱스 스크립트 연동 주소와 접근 코드를 한 번 넣으면 이 브라우저에 기억합니다. 설치 방법은 「구글 시트 연동 설치 안내」를 따릅니다.<br>운영현황 시트가 늘어나면 아래 목록에 링크만 추가합니다. 앱스 스크립트를 만든 계정에 그 시트 보기 권한이 있어야 합니다.</span></span></h3>
+      <div class="row" style="margin:0 0 10px;gap:8px">
+        <button type="button" id="gsLoad">구글 시트에서 불러오기</button>
+        <label class="hint" style="font-size:13px;color:var(--ink)"><input type="checkbox" id="gsAuto"> 화면을 열 때 자동으로 불러오기</label>
+        <span class="hint" id="gsLoadInfo"></span>
+      </div>
+      <details id="gsSet">
+        <summary>연동 설정</summary>
+        <div class="grid g2" style="margin:12px 0 10px">
+          <label class="fld"><span>연동 주소 <em>앱스 스크립트 웹 앱 주소 (…/exec)</em></span><input type="text" id="gsUrl" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></label>
+          <label class="fld"><span>접근 코드</span><input type="password" id="gsCode" autocomplete="off"></label>
+        </div>
+        <div class="row" style="gap:8px"><button type="button" class="ghost" id="gsTest">연결 확인</button><span class="hint" id="gsTestInfo"></span></div>
+        <h4 style="margin:14px 0 6px;font-size:13.5px">운영현황 시트 목록</h4>
+        <table class="cv" id="gsOpsTable"><thead><tr><th style="width:180px">구분</th><th>구글 시트 링크</th><th style="width:60px"></th></tr></thead><tbody></tbody></table>
+        <div class="row" style="margin:8px 0 0;gap:8px"><button type="button" class="ghost sm" id="gsOpsAdd">시트 추가</button><button type="button" class="sm" id="gsOpsSave">시트 목록 저장</button><span class="hint" id="gsOpsInfo"></span></div>
+      </details>
+    </div>
     <div class="card" id="opsSum" hidden>
       <h3>운영현황 파일 <small id="opsFiles"></small></h3>
       <div class="sheets" id="opsSheets"></div>
@@ -541,6 +582,74 @@
       <h3>학교·기관별 운영 현황 <small id="opsCount"></small> <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">줄에 마우스를 올리면 <b>수정</b>가 보입니다.<br>학교 이름 옆 수정: 학교·기관 이름과 담당자(이름·연락처·이메일)를 고칩니다. 이름을 바꾸면 그 학교의 모든 수업이 옮겨지고, 강사 목록의 배치 학교 이름도 함께 바꿀 수 있습니다.<br>수업 줄 옆 수정: 프로그램명·분야·시기·학년·기간·주강사·보조강사를 고치거나 수업을 지웁니다. 「수업 추가」로 새 수업을 넣습니다.<br>고친 수업에는 「고침」이 붙습니다. 엑셀을 다시 불러오면 고친 내용은 엑셀 내용으로 바뀝니다.</span></span></h3>
       <div class="row" style="margin:0 0 10px"><input type="text" id="opsQ" placeholder="학교·프로그램·강사 이름으로 찾기" autocomplete="off" style="width:320px"></div>
       <div class="opsscroll"><table class="ops" id="opsTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ⑤ 증명서: 경력·출강증명서 발급 -->
+  <section data-sec="cert" hidden>
+    <div class="outgrid certgrid">
+      <div class="card">
+        <h3>강사·수업 선택 <small id="ctBasis"></small>
+          <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">운영현황(쓰는 시트, 기본 「호서대」)에서 강사가 <b>강사명</b> 또는 <b>보조강사</b> 칸에 들어간 수업을 보여 줍니다. 「새로나 보조」는 대상이 아닙니다.<br>고른 수업으로 실적(근무 장소·프로그램명·교육 대상·직급·시수)과 근무기간을 채웁니다. 모두 종료된 수업이면 경력증명서, 진행 중인 수업이 있으면 출강증명서로 정합니다.<br><b>확인 필요</b>: 운영현황 이름 칸에 메모(교체·일부 기간 등)가 섞인 수업입니다. 시수와 기간을 확인해 주세요.</span></span></h3>
+        <input type="text" id="ctQ" placeholder="강사 이름 찾기" autocomplete="off" style="width:100%">
+        <div class="fchips" id="ctPeople" style="margin:10px 0 0"></div>
+        <div id="ctTel" class="hint" hidden style="margin-top:8px"></div>
+        <div id="ctClasses"></div>
+      </div>
+      <div class="card">
+        <h3>증명서 내용</h3>
+        <div class="grid g4 ctform">
+          <label class="fld"><span>종류</span><select id="ctKind"><option value="경력">경력증명서</option><option value="출강">출강증명서</option></select></label>
+          <label class="fld"><span>발급일</span><input type="date" id="ctDate"></label>
+          <label class="fld"><span>담당자</span><select id="ctStaff"></select></label>
+          <label class="fld"><span>문서번호 <em id="ctNoHint"></em></span><input type="text" id="ctNo" autocomplete="off"></label>
+          <label class="fld"><span>성명</span><input type="text" id="ctName" autocomplete="off"></label>
+          <label class="fld"><span>생년월일 <em id="ctBirthHint"></em></span><input type="text" id="ctBirth" autocomplete="off" placeholder="1982. 3. 14."></label>
+          <label class="fld span2"><span>날인대장 비고</span><input type="text" id="ctNote" autocomplete="off"></label>
+          <label class="fld span4"><span>주소 <em id="ctAddrHint"></em></span><input type="text" id="ctAddr" autocomplete="off"></label>
+          <label class="fld span4"><span>근무기간</span><input type="text" id="ctPeriod" autocomplete="off" placeholder="2026. 7. 24.~2026. 8. 14."></label>
+        </div>
+        <div class="fld" style="margin-top:12px"><span>실적 <em>한 장에 5줄까지</em></span>
+          <table class="cv" id="ctRows"><thead><tr><th style="width:21%">근무 장소</th><th style="width:37%">프로그램명</th><th style="width:15%">교육 대상</th><th style="width:15%">직급</th><th style="width:12%">시수</th></tr></thead><tbody></tbody></table></div>
+        <div class="ctwarn" id="ctWarn" hidden></div>
+        <div class="row" style="margin:14px 0 0;gap:8px">
+          <button type="button" class="save" id="ctMake">증명서 생성·다운로드</button>
+          <span class="hint" id="ctMakeInfo"></span>
+        </div>
+        <div class="ctdone" id="ctDone" hidden>
+          <div id="ctDoneMsg"></div>
+          <div id="ctLedgerBox" hidden><textarea id="ctLedger" readonly rows="2"></textarea>
+            <div class="row" style="margin:6px 0 0;gap:8px"><button type="button" class="ghost sm" id="ctCopy">날인대장 줄 복사</button><span class="hint" id="ctCopyInfo"></span></div></div>
+          <div class="row" style="margin:6px 0 0;gap:8px"><button type="button" class="ghost sm" id="ctAgain">같은 문서번호로 다시 다운로드</button></div>
+        </div>
+      </div>
+    </div>
+    <details class="card" id="ctSet" style="max-width:1080px">
+      <summary>증명서 설정 <small id="ctSetBasis"></small></summary>
+      <div class="grid g2" style="margin:12px 0 10px">
+        <label class="fld span2"><span>사업명 첫째 줄</span><input type="text" id="cs-project1"></label>
+        <label class="fld span2"><span>사업명 둘째 줄 <em>차년도는 여기서 수정</em></span><input type="text" id="cs-project2"></label>
+        <label class="fld"><span>담당자 소속 첫째 줄</span><input type="text" id="cs-org"></label>
+        <label class="fld"><span>부서명 <em>담당자 줄·날인부서</em></span><input type="text" id="cs-dept"></label>
+        <label class="fld"><span>센터장 직함</span><input type="text" id="cs-headTitle"></label>
+        <label class="fld"><span>센터장 이름 <em>양식 그대로, 띄어쓰기 포함</em></span><input type="text" id="cs-headName"></label>
+        <label class="fld"><span>긴 글 줄바꿈 <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">「다시 계산」은 한글이 파일을 열 때 줄 배치를 새로 계산합니다(기본). 긴 주소·프로그램명이 겹쳐 보이면 「양식 유지」로 바꿔 보세요.</span></span></span><select id="cs-lineseg"><option value="1">한글이 열 때 다시 계산</option><option value="0">양식 줄 배치 유지</option></select></label>
+        <label class="fld" id="cs-seqBox"><span>다음 순번 <em>연동하지 않을 때만</em></span><input type="number" id="cs-nextSeq" min="1"></label>
+      </div>
+      <div class="fld"><span>담당자 목록</span>
+        <table class="cv" id="csStaff"><thead><tr><th>이름</th><th>직위</th><th>문의 전화</th><th style="width:60px"></th></tr></thead><tbody></tbody></table></div>
+      <div class="row" style="margin:10px 0 0;gap:8px"><button type="button" class="ghost sm" id="csAddStaff">담당자 추가</button><button type="button" class="sm" id="csSave">설정 저장</button><span class="hint" id="csInfo"></span></div>
+    </details>
+  </section>
+
+  <!-- ⑤ 증명서: 발급 내역 -->
+  <section data-sec="certlog" hidden>
+    <div class="card" style="max-width:1180px">
+      <h3>발급 내역 <small id="clBasis"></small>
+        <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">구글 시트 연동이 되어 있으면 <b>날인대장(앵커늘봄 탭)</b>의 최근 50건을 보여 줍니다. 발급할 때마다 그 탭에 한 줄씩 자동으로 쌓입니다.<br>연동하지 않았으면 이 브라우저에서 발급한 기록을 보여 줍니다. 「전체 복사」로 날인대장 형식(순번~비고)을 복사해 붙여 넣습니다.</span></span></h3>
+      <div class="row" style="margin:0 0 10px;gap:8px"><button type="button" class="ghost sm" id="clReload">새로 고침</button><button type="button" class="ghost sm" id="clCopy">전체 복사</button><a id="clOpen" class="hint" target="_blank" rel="noopener" hidden>날인대장 열기</a><span class="hint" id="clInfo"></span></div>
+      <div class="gview"><table class="stt" id="clTable"></table></div>
+      <textarea id="clArea" hidden rows="4" style="width:100%;margin-top:8px"></textarea>
     </div>
   </section>
 
@@ -829,18 +938,22 @@
 <script src="templates.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="ops.js"></script>
+<script src="certs.js"></script>
+<script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-3';
+var APP_VERSION = '2026.11.20-4';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
 var FORMS = Forms.FORMS;
 ['verSide','verFoot'].forEach(function(id){ $(id).textContent = '버전 ' + APP_VERSION; });
 
-var PAGES = ['ops','roster','status','info','school','cv','imgs','pdf','out','mail','sms'];
-var SHARED_PAGES = { ops: 1, roster: 1, status: 1, mail: 1, sms: 1 };   // 강사 한 명이 아니라 전체에 대한 화면
+var PAGES = ['ops','roster','status','info','school','cv','imgs','pdf','out','mail','sms','cert','certlog'];
+var SHARED_PAGES = { ops: 1, roster: 1, status: 1, mail: 1, sms: 1, cert: 1, certlog: 1 };   // 강사 한 명이 아니라 전체에 대한 화면
 var PAGE_META = {
+  cert:    ['⑤ 증명서', '경력·출강증명서 발급', '운영현황에서 강사의 수업을 골라 경력증명서·출강증명서(한글)를 만듭니다. 구글 시트 연동이 되어 있으면 날인대장에 자동으로 기록하고 문서번호를 매깁니다.'],
+  certlog: ['⑤ 증명서', '발급 내역', '날인대장(앵커늘봄 탭)에 쌓인 증명서 발급 내역을 봅니다.'],
   roster: ['⓪ 기준정보', '강사 목록', '등록한 강사 전체를 부족 서류·발송 상태와 함께 봅니다. 여러 명을 골라 서류 다운로드·삭제·보완 요청을 한 번에 합니다.'],
   sms:    ['④ 제출', '서류 보완 요청', '부족 서류가 있는 강사를 골라 제출 요청 문자를 만듭니다. 문자 내용·전화번호 복사, 휴대폰 문자 열기, 대량 문자용 CSV 다운로드를 제공합니다.'],
   status: ['⓪ 기준정보', '서류 구비·발송 현황', '운영현황의 강사마다 서류가 준비됐는지, 학교에 보냈는지 한눈에 봅니다.'],
@@ -987,7 +1100,7 @@ async function openSplit(){
 }
 
 /* ---------- 백업·복원 ---------- */
-var BK_KEYS=['settings','ops','contacts','mailCfg','sent','smsCfg','smsLog'], bkCfg={mode:'off', last:0, lastDay:''}, bkDir=null, bkTimer=null, bkReady=false, bkBusy=false;
+var BK_KEYS=['settings','ops','contacts','mailCfg','sent','smsCfg','smsLog','gas','certCfg','certLog'], bkCfg={mode:'off', last:0, lastDay:''}, bkDir=null, bkTimer=null, bkReady=false, bkBusy=false;
 function u8ToB64(u){ var s='', CH=0x8000; for(var i=0;i<u.length;i+=CH) s+=String.fromCharCode.apply(null, u.subarray(i,i+CH)); return btoa(s); }
 function b64ToU8(b){ var s=atob(b), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
 function bkStamp(){ var d=new Date(), z=function(n){ return ('0'+n).slice(-2); }; return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
@@ -1069,6 +1182,7 @@ async function bkRestore(file){
       if(kv.smsCfg && !(await kvGet('smsCfg'))) kvPut('smsCfg', kv.smsCfg);
       if(kv.mailCfg && !(await kvGet('mailCfg'))) kvPut('mailCfg', kv.mailCfg);
       if(kv.settings && !(await kvGet('settings'))) kvPut('settings', kv.settings);
+      for(const k2 of ['gas','certCfg','certLog']){ if(kv[k2] && !(await kvGet(k2))) kvPut(k2, kv[k2]); }
     }
     info.textContent='복원했습니다 (새로 '+add+'명'+(upd?', 바꿈 '+upd+'명':'')+'). 화면을 다시 불러옵니다…';
     setTimeout(function(){ location.reload(); }, 900);
@@ -1607,6 +1721,8 @@ function go(p){
   if(p==='sms') renderSms();
   if(p==='mail') renderMail();
   if(p==='school') renderMyOps();
+  if(p==='cert') renderCert();
+  if(p==='certlog') renderCertLog();
   window.scrollTo(0,0);
 }
 
@@ -2377,9 +2493,300 @@ function toast(t){ var el=$('toast'); el.textContent=t; el.classList.add('on'); 
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') hide(); });
 })();
 
+/* ---------- 구글 시트 연동 (앱스 스크립트) ---------- */
+var gas = { url: '', code: '', auto: true }, gasInfo = null, gasOpsList = [];
+function gasOn(){ return !!(gas.url && gas.code); }
+async function gasCall(action, extra){
+  if(!gasOn()) throw { message: '구글 시트 연동 설정이 없습니다. 「운영현황 → 구글 시트 연동」에서 연동 주소와 접근 코드를 넣어 주세요' };
+  var res;
+  try{
+    res = await fetch(gas.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ code: gas.code, action: action }, extra||{})) });
+  }catch(e){ throw { net: true, message: '연동 주소에 연결하지 못했습니다. 주소와 앱스 스크립트 배포 설정(액세스 권한: 모든 사용자)을 확인해 주세요' + (window.claude ? '. claude.ai 화면에서는 연동이 막혀 있어 깃허브 화면에서 사용해 주세요' : '') }; }
+  var j; try{ j = await res.json(); }catch(e){ throw { message: '연동 주소의 응답을 읽지 못했습니다. 연동 주소가 「…/exec」로 끝나는지 확인해 주세요' }; }
+  if(!j.ok) throw { code: j.error, message: j.message || '처리하지 못했습니다' };
+  return j;
+}
+function gasState(){
+  var s = $('gsState'); if(!s) return;
+  s.textContent = !gasOn() ? '연동 안 함' : gasInfo ? '연동됨 · '+gasInfo.ledger+' 「'+gasInfo.sheet+'」 탭 · 마지막 순번 '+gasInfo.lastSeq : '연동 확인 전';
+  $('gsLoad').disabled = !gasOn();
+}
+function renderGasOps(){
+  var tb = $('gsOpsTable').tBodies[0];
+  tb.innerHTML = gasOpsList.map(function(o, i){ return '<tr><td><input type="text" data-gl="'+i+'" value="'+esc(o.label||'')+'" placeholder="예: 2027 1학기"></td><td><input type="text" data-gu="'+i+'" value="'+esc(o.url||(o.id?'https://docs.google.com/spreadsheets/d/'+o.id+'/edit':''))+'" placeholder="https://docs.google.com/spreadsheets/d/…"></td><td style="text-align:center"><button type="button" class="del sm" data-gd="'+i+'">삭제</button></td></tr>'; }).join('')
+    || '<tr><td colspan="3" class="hint" style="padding:8px">연결 확인을 누르면 앱스 스크립트에 저장된 목록을 불러옵니다.</td></tr>';
+}
+function readGasOps(){ return Array.prototype.map.call($('gsOpsTable').tBodies[0].querySelectorAll('tr'), function(tr){ var a=tr.querySelector('[data-gl]'), b=tr.querySelector('[data-gu]'); return a ? { label: a.value.trim(), url: b.value.trim() } : null; }).filter(function(x){ return x && (x.label || x.url); }); }
+async function gasPing(quiet){
+  try{
+    gasInfo = await gasCall('ping');
+    gasOpsList = (gasInfo.ops||[]).map(function(o){ return { label: o.label, id: o.id }; });
+    if(gasInfo.cfg) applyCertCfg(gasInfo.cfg, true);
+    renderGasOps(); gasState();
+    if(!quiet) $('gsTestInfo').textContent = '연결했습니다. 날인대장 「'+gasInfo.sheet+'」 탭, 운영현황 시트 '+gasOpsList.length+'개';
+    return true;
+  }catch(e){ gasInfo = null; gasState(); if(!quiet) $('gsTestInfo').textContent = e.message; else toast('구글 시트 연동: '+e.message); return false; }
+}
+// 구글 시트(앱스 스크립트)에서 운영현황 읽기 → 엑셀 넣기와 같은 형태로 바꾼다
+async function loadOpsLinks(auto){
+  var editedN = (ops.rows||[]).filter(function(r){ return r.edited; }).length;
+  if(editedN){
+    if(auto){ toast('직접 고친 수업 '+editedN+'개가 있어 운영현황을 자동으로 불러오지 않았습니다'); return; }
+    if(!loadOpsLinks.armed){ loadOpsLinks.armed = 1; toast('직접 고친 수업 '+editedN+'개가 구글 시트 내용으로 바뀝니다. 계속하려면 한 번 더 눌러 주세요'); setTimeout(function(){ loadOpsLinks.armed = 0; }, 8000); return; }
+  }
+  loadOpsLinks.armed = 0;
+  var btn = $('gsLoad'); btn.disabled = true; $('gsLoadInfo').textContent = '구글 시트에서 읽는 중…';
+  try{
+    var res = await gasCall('ops'), rows = [], files = [], sheets = [], msgs = [], prevOn = ops && ops.from === 'link' ? ops.on : null, found = [];
+    res.files.forEach(function(f){
+      if(f.error){ msgs.push(f.label+': '+f.error); return; }
+      var got = 0;
+      (f.tabs||[]).forEach(function(t){
+        var r = Ops.parseSheet(t.aoa, f.label+' · '+t.name);
+        if(!r || !r.length) return;
+        r.forEach(function(x){ x.sheet = t.name; }); rows = rows.concat(r); got += r.length;
+        var e = sheets.filter(function(y){ return y.name === t.name; })[0]; if(e) e.count += r.length; else sheets.push({ name: t.name, count: r.length });
+        if(found.indexOf(t.name) < 0) found.push(t.name);
+      });
+      if(got) files.push(f.label); else msgs.push(f.label+': 운영현황 머리글(강사명·프로그램명)을 찾지 못했습니다');
+    });
+    if(!rows.length){ toast(msgs.join(' · ') || '읽을 수 있는 운영현황이 없습니다'); return; }
+    var on = prevOn ? prevOn.filter(function(n){ return found.indexOf(n) >= 0; }) : [];
+    if(!on.length) on = Ops.defaultOn(found);
+    rows.forEach(function(r, i){ r.id = 'r'+i; });
+    ops = { files: files, loadedAt: today(), rows: rows, sheets: sheets, on: on, seq: rows.length, from: 'link', at: res.at }; opsChanged();
+    opsSchools().forEach(function(s){ var c = contacts[s.school] = contacts[s.school] || {}; ['name','tel','email'].forEach(function(k){ if(s.contact[k] && !c[k]) c[k] = s.contact[k]; }); });
+    kvPut('contacts', contacts);
+    renderOps(); refresh(); schoolWarn(); if(page === 'cert') renderCert();
+    $('gsLoadInfo').textContent = res.at+' 불러옴';
+    if(!auto || msgs.length) toast('구글 시트에서 운영현황을 불러왔습니다: '+on.join('·')+' 시트 · 수업 '+opsRows().length+'개 · 강사 '+opsPeople().length+'명'+(msgs.length ? ' · '+msgs.join(' · ') : ''));
+  }catch(e){ console.error(e); $('gsLoadInfo').textContent = ''; toast('운영현황을 불러오지 못했습니다: '+(e.message||e)); }
+  finally{ btn.disabled = !gasOn(); }
+}
+function bindGas(){
+  $('gsUrl').value = gas.url; $('gsCode').value = gas.code; $('gsAuto').checked = gas.auto !== false;
+  function keep(){ gas.url = $('gsUrl').value.trim(); gas.code = $('gsCode').value.trim(); gas.auto = $('gsAuto').checked; kvPut('gas', gas); gasInfo = null; gasState(); }
+  $('gsUrl').addEventListener('change', keep); $('gsCode').addEventListener('change', keep);
+  $('gsAuto').addEventListener('change', function(){ gas.auto = $('gsAuto').checked; kvPut('gas', gas); });
+  $('gsTest').addEventListener('click', async function(){ keep(); $('gsTestInfo').textContent = '확인 중…'; await gasPing(false); });
+  $('gsLoad').addEventListener('click', function(){ loadOpsLinks(false); });
+  $('gsOpsAdd').addEventListener('click', function(){ gasOpsList = readGasOps().concat([{ label: '', url: '' }]); renderGasOps(); });
+  $('gsOpsTable').addEventListener('click', function(e){ var b = e.target.closest('[data-gd]'); if(!b) return; var l = readGasOps(); l.splice(+b.dataset.gd, 1); gasOpsList = l; renderGasOps(); });
+  $('gsOpsSave').addEventListener('click', async function(){
+    var info = $('gsOpsInfo'); info.textContent = '확인 중…';
+    try{ var r = await gasCall('setops', { list: readGasOps() }); gasOpsList = r.ops.map(function(o){ return { label: o.label, id: o.id }; }); renderGasOps(); info.textContent = '저장했습니다. 운영현황 시트 '+gasOpsList.length+'개'; }
+    catch(e){ info.textContent = e.message; }
+  });
+  renderGasOps(); gasState(); $('gsSet').open = !gasOn();
+}
+
+/* ---------- ⑤ 증명서: 경력·출강증명서 발급 ---------- */
+var DEFAULT_CERT = {
+  project1: '충청남도청 RISE센터 지원 / 호서대학교 주관',
+  project2: '「충청남도 지역성장 인재양성체계(앵커) 『늘봄학교 고도화』(2차년도)」',
+  org: '호서대학교 산학협력단', dept: '앵커늘봄총괄센터', headTitle: '앵커늘봄총괄센터장', headName: '전  수  진',
+  staff: [{ name: '이지훈', title: '연구원', tel: '041-423-2427' }], dropLineSeg: true, nextSeq: 47
+};
+var certCfg = JSON.parse(JSON.stringify(DEFAULT_CERT)), certLog = [], ct = { name: '', tel: '', picked: {}, noEdited: false, noteEdited: false, last: null };
+function applyCertCfg(c, fromServer){
+  var keepSeq = certCfg.nextSeq;
+  certCfg = Object.assign(JSON.parse(JSON.stringify(DEFAULT_CERT)), c || {});
+  if(fromServer && keepSeq) certCfg.nextSeq = Math.max(keepSeq, certCfg.nextSeq || 1);
+  if(!certCfg.staff || !certCfg.staff.length) certCfg.staff = DEFAULT_CERT.staff.slice();
+  if(fromServer) kvPut('certCfg', certCfg);
+  if($('ctStaff')) { renderCertStaff(); renderCertSet(); }
+}
+function pad3(n){ return ('00'+n).slice(-3); }
+function certPeople(){ // 운영현황(쓰는 시트)에서 강사별 수업 목록 (총차시 포함)
+  var map = {};
+  // 발급 대상은 「호서대」 탭만 (없으면 쓰는 시트)
+  var src = (ops.rows||[]).filter(function(r){ return Ops.norm(r.sheet) === '호서대'; }); if(!src.length) src = opsRows();
+  src.forEach(function(r){ r.people.forEach(function(p){ (map[p.name] = map[p.name] || []).push({ row: r, role: p.role, tel: p.tel || '', flagged: p.flagged }); }); });
+  return map;
+}
+function ctKey(it){ return it.row.id+'|'+it.role; }
+function ctStatus(r){ var t = today(); if(r.end && r.end < t) return ['ok', '종료']; if(r.start && r.start > t) return ['no', '예정']; return ['wait', '진행 중']; }
+function ctItems(){ var m = certPeople(), l = m[ct.name] || []; return l.filter(function(i){ return !ct.tel || !i.tel || i.tel === ct.tel; }); }
+function ctPicked(){ return ctItems().filter(function(i){ return ct.picked[ctKey(i)]; }); }
+function gradeText(g){ g = String(g||'').trim(); return /^\d(\s*~\s*\d)?$/.test(g) ? g.replace(/\s/g,'')+'학년' : g; }
+function ctRowOf(it){ var r = it.row; return { place: r.school, program: (r.field ? '['+r.field+'] ' : '')+r.program, target: gradeText(r.grade), role: it.role, hours: String(r.total||'') }; }
+function ctAutoNo(){
+  var k = $('ctKind').value === '경력' ? 'A' : 'C', ymd = ($('ctDate').value || today()).replace(/-/g, '');
+  if(gasOn() && gasInfo) return k+'-'+ymd+'-'+pad3((+gasInfo.lastSeq||0)+1);
+  var m = 0; certLog.forEach(function(x){ if(+x.seq > m) m = +x.seq; });
+  return k+'-'+ymd+'-'+pad3(Math.max(+certCfg.nextSeq||1, m+1));
+}
+function ctRefreshNo(){
+  var linked = gasOn() && gasInfo;
+  $('ctNo').readOnly = !!linked;
+  $('ctNoHint').textContent = linked ? '날인대장 순번' : gasOn() ? '연동 확인 전' : '이 브라우저 순번';
+  if(linked || !ct.noEdited) { $('ctNo').value = ctAutoNo(); ct.noEdited = false; }
+}
+function renderCertStaff(){
+  var sel = $('ctStaff'), keep = sel.value; try{ keep = keep || localStorage.getItem('certStaff') || ''; }catch(e){}
+  sel.innerHTML = certCfg.staff.map(function(s){ return '<option>'+esc(s.name)+'</option>'; }).join('');
+  if(keep && certCfg.staff.some(function(s){ return s.name === keep; })) sel.value = keep;
+}
+function renderCertSet(){
+  ['project1','project2','org','dept','headTitle','headName','nextSeq'].forEach(function(k){ var el = $('cs-'+k); if(document.activeElement !== el) el.value = certCfg[k] == null ? '' : certCfg[k]; });
+  $('cs-lineseg').value = certCfg.dropLineSeg === false ? '0' : '1';
+  $('cs-seqBox').hidden = gasOn();
+  $('ctSetBasis').textContent = gasOn() && gasInfo ? '모든 담당자가 같이 씀' : '이 브라우저에 저장';
+  $('csStaff').tBodies[0].innerHTML = certCfg.staff.map(function(s, n){ return '<tr>'+['name','title','tel'].map(function(f){ return '<td><input type="text" data-sf="'+f+'" value="'+esc(s[f]||'')+'"></td>'; }).join('')+'<td style="text-align:center"><button type="button" class="del sm" data-sdel="'+n+'">삭제</button></td></tr>'; }).join('');
+}
+function readCertStaff(){ return Array.prototype.map.call($('csStaff').tBodies[0].rows, function(tr){ var v = {}; tr.querySelectorAll('[data-sf]').forEach(function(i){ v[i.dataset.sf] = i.value.trim(); }); return v; }); }
+function renderCert(){
+  var has = opsLoaded();
+  var exact = (ops.rows||[]).some(function(r){ return Ops.norm(r.sheet) === '호서대'; });
+  $('ctBasis').textContent = has ? (ops.from === 'link' ? '구글 시트' : '엑셀')+' · '+(exact ? '호서대' : (ops.on||[]).join('·'))+' 시트 · '+ops.loadedAt : '';
+  if(!has){ $('ctPeople').innerHTML = ''; $('ctClasses').innerHTML = '<p class="hint" style="margin:10px 0 0">운영현황이 없습니다. 「운영현황」에서 구글 시트를 불러오거나 엑셀을 넣어 주세요.</p>'; }
+  else renderCtPeople();
+  renderCertStaff(); renderCertSet(); ctRefreshNo();
+}
+function renderCtPeople(){
+  var q = $('ctQ').value.replace(/\s/g,''), m = certPeople(), names = Object.keys(m).sort(function(a,b){ return a.localeCompare(b,'ko'); });
+  if(!q){ $('ctPeople').innerHTML = ''; if(!ct.name) $('ctClasses').innerHTML = '<p class="hint" style="margin:10px 0 0">강사 이름을 넣으면 그 강사의 수업이 나옵니다. 운영현황 강사 '+names.length+'명</p>'; else renderCtClasses(); return; }
+  var hit = names.filter(function(n){ return n.indexOf(q) >= 0; }).slice(0, 30);
+  $('ctPeople').innerHTML = hit.length ? hit.map(function(n){ return '<button type="button" data-ctp="'+esc(n)+'" class="'+(ct.name===n?'on':'')+'">'+esc(n)+'<b>'+m[n].length+'</b></button>'; }).join('') : '<span class="hint">운영현황에 없는 이름입니다. 오른쪽 내용을 직접 넣어 발급할 수 있습니다.</span>';
+  if(hit.length === 1 && hit[0] === q && ct.name !== q) ctPick(q); else renderCtClasses();
+}
+function ctPick(name){
+  ct.name = name; ct.tel = ''; ct.picked = {}; ct.noteEdited = false;
+  $('ctName').value = name;
+  var rp = personBy(name);
+  var b = rp ? Forms.birthFromRrn(rp.rrn) : '';
+  $('ctBirth').value = b; $('ctBirthHint').textContent = b ? '주민번호에서' : '';
+  $('ctAddr').value = rp && rp.address || ''; $('ctAddrHint').textContent = rp && rp.address ? '인적사항에서' : '';
+  renderCtPeople(); ctFill();
+}
+function renderCtClasses(){
+  var box = $('ctClasses'), all = certPeople()[ct.name] || [];
+  if(!ct.name){ box.innerHTML = ''; $('ctTel').hidden = true; return; }
+  var tels = []; all.forEach(function(i){ if(i.tel && tels.indexOf(i.tel) < 0) tels.push(i.tel); });
+  $('ctTel').hidden = tels.length < 2;
+  if(tels.length > 1) $('ctTel').innerHTML = '연락처가 다른 기록이 있습니다. 동명이인일 수 있으니 골라 주세요. <span class="fchips" style="display:inline-flex;margin:0">'+['전체'].concat(tels).map(function(t){ var v = t === '전체' ? '' : t; return '<button type="button" data-ctt="'+v+'" class="'+(ct.tel===v?'on':'')+'">'+esc(t)+'</button>'; }).join('')+'</span>';
+  var items = ctItems(), groups = {};
+  items.forEach(function(i){ (groups[i.row.src] = groups[i.row.src] || []).push(i); });
+  box.innerHTML = Object.keys(groups).map(function(src){
+    return '<div class="ctg"><div class="ctgh"><b>'+esc(src)+'</b><button type="button" class="ghost sm" data-cta="'+esc(src)+'">모두 선택</button></div>'+groups[src].map(function(i){
+      var r = i.row, st = ctStatus(r), k = ctKey(i);
+      return '<label class="ctc"><input type="checkbox" data-ctk="'+esc(k)+'"'+(ct.picked[k]?' checked':'')+'><span><b>'+esc(r.school)+'</b> · '+esc(r.program)+'<small>'+[esc(r.grade), i.role, (r.total?esc(r.total)+'차시':'총차시 없음'), esc(Ops.period([r]))].join(' · ')+' <span class="badge '+st[0]+'">'+st[1]+'</span>'+(i.flagged?' <span class="badge wait" title="'+esc(r.people.map(function(p){return p.name;}).join(', '))+'">확인 필요</span>':'')+'</small></span></label>';
+    }).join('')+'</div>';
+  }).join('') || '<p class="hint">고른 연락처에 해당하는 수업이 없습니다.</p>';
+}
+function ctFill(){
+  var it = ctPicked(), rows = it.map(ctRowOf), tb = $('ctRows').tBodies[0];
+  for(var r = 0; r < 5; r++){ var c = rows[r] || {}; ['place','program','target','role','hours'].forEach(function(f, j){ tb.rows[r].cells[j].firstChild.value = c[f] || ''; }); }
+  $('ctPeriod').value = it.length ? Ops.period(it.map(function(i){ return i.row; })) : '';
+  if(it.length){
+    $('ctKind').value = it.every(function(i){ return ctStatus(i.row)[0] === 'ok'; }) ? '경력' : '출강';
+    if(!ct.noteEdited){
+      var srcs = [], roles = [], yr = ($('ctDate').value || today()).slice(0, 4);
+      it.forEach(function(i){ var s = String(i.row.src).split(' · ')[0]; if(srcs.indexOf(s) < 0) srcs.push(s); if(roles.indexOf(i.role) < 0) roles.push(i.role); });
+      $('ctNote').value = srcs.join(', ')+' 앵커늘봄 '+roles.join('·');
+    }
+  }
+  var w = [], fl = it.filter(function(i){ return i.flagged; }).length;
+  if(it.length > 5) w.push('수업을 '+it.length+'개 골랐습니다. 양식은 5줄까지라 앞의 5개만 들어갑니다. 나눠서 발급해 주세요.');
+  if(fl) w.push('「확인 필요」 수업이 '+fl+'개 있습니다. 강사 교체나 일부 기간 참여일 수 있으니 시수와 기간을 확인해 주세요.');
+  if(it.some(function(i){ return !i.row.total; })) w.push('총차시가 비어 있는 수업이 있습니다. 시수를 직접 넣어 주세요.');
+  $('ctWarn').hidden = !w.length; $('ctWarn').innerHTML = w.map(esc).join('<br>');
+  ctRefreshNo();
+}
+function ctRead(){ return Array.prototype.map.call($('ctRows').tBodies[0].rows, function(tr){ var v = Array.prototype.map.call(tr.cells, function(td){ return td.firstChild.value.trim(); }); return v; }).filter(function(v){ return v.some(Boolean); }).map(function(v){ return { place: v[0], program: v[1], target: v[2], role: v[3], hours: v[4] }; }); }
+function ctData(docNo){
+  var st = certCfg.staff.filter(function(s){ return s.name === $('ctStaff').value; })[0];
+  return { kind: $('ctKind').value, docNo: docNo, name: $('ctName').value.trim(), birth: $('ctBirth').value.trim(), address: $('ctAddr').value.trim(), period: $('ctPeriod').value.trim(), rows: ctRead(),
+    issueDate: Forms.dateKor($('ctDate').value || today()), project1: certCfg.project1, project2: certCfg.project2, org: certCfg.org,
+    staffLine: st ? [certCfg.dept, st.title, st.name].filter(Boolean).join(' ') : '', staffTel: st ? st.tel : '', headTitle: certCfg.headTitle, headName: certCfg.headName, _staff: st };
+}
+function ctBytes(d){ return Certs.fillHwp({ CFB: CFB, pako: pako }, Certs.b64ToBytes(window.CERT_TPL[d.kind]), Certs.certEdits(d), certCfg.dropLineSeg !== false); }
+async function ctSave(d){
+  var bytes = ctBytes(d), base = cleanFile(d.kind+'증명서_'+d.name+'_'+d.docNo), dl = await getDownloads();
+  if(dl){ var z = new JSZip(); z.file(base+'.hwp', bytes); await saveBlob(await z.generateAsync({ type: 'blob' }), base+'.zip'); }   // claude.ai 화면은 hwp 다운로드가 막혀 ZIP으로
+  else await saveBlob(new Blob([bytes], { type: 'application/x-hwp' }), base+'.hwp');
+}
+function ledgerLine(x){ return [x.seq, x.sealDate, x.docNo, x.docName, 1, x.dept, x.staff, x.name, x.note].join('\t'); }
+async function ctMake(){
+  var info = $('ctMakeInfo'), d = ctData('X-00000000-000'), miss = [];
+  if(!d.name) miss.push('성명'); if(!d.birth) miss.push('생년월일'); if(!d.address) miss.push('주소'); if(!d.period) miss.push('근무기간'); if(!d.rows.length) miss.push('실적'); if(!d._staff) miss.push('담당자');
+  if(miss.length){ info.textContent = '비어 있는 칸: '+miss.join(', '); return; }
+  if(!d._staff.tel){ info.textContent = '「증명서 설정」에서 '+d._staff.name+' 담당자의 문의 전화를 넣어 주세요'; return; }
+  if(d.rows.length > 5){ info.textContent = '실적은 5줄까지입니다'; return; }
+  try{ ctBytes(d); }catch(e){ info.textContent = '양식을 채우지 못했습니다: '+e.message; return; }
+  var btn = $('ctMake'); btn.disabled = true; info.textContent = gasOn() ? '날인대장에 기록하는 중…' : '';
+  var ymd = $('ctDate').value || today(), entry = { sealDate: ymd.replace(/-/g, '.')+'.', docName: d.kind+'증명서', dept: certCfg.dept, staff: d._staff.name, name: d.name, note: $('ctNote').value.trim() };
+  try{
+    if(gasOn()){
+      var r = await gasCall('issue', { issue: { kind: d.kind, date: ymd, name: d.name, staff: d._staff.name, dept: certCfg.dept, note: entry.note } });
+      d.docNo = r.docNo; entry.seq = r.seq; entry.docNo = r.docNo; if(gasInfo) gasInfo.lastSeq = r.seq;
+      $('ctDoneMsg').innerHTML = '<b>'+esc(r.docNo)+'</b> 날인대장 「'+esc(gasInfo ? gasInfo.sheet : '앵커늘봄')+'」 탭 '+r.row+'행에 기록했습니다. 한글에서 내용을 확인한 뒤 날인해 주세요.';
+      $('ctLedgerBox').hidden = true;
+    } else {
+      d.docNo = $('ctNo').value.trim() || ctAutoNo();
+      var m = d.docNo.match(/-(\d{3})$/); entry.seq = m ? +m[1] : (+certCfg.nextSeq||1); entry.docNo = d.docNo; entry.ts = Date.now();
+      certLog.unshift(entry); kvPut('certLog', certLog);
+      certCfg.nextSeq = entry.seq + 1; kvPut('certCfg', certCfg);
+      $('ctDoneMsg').innerHTML = '<b>'+esc(d.docNo)+'</b> 이 브라우저 발급 내역에 기록했습니다. 아래 줄을 날인대장에 붙여 넣어 주세요.';
+      $('ctLedger').value = ledgerLine(entry); $('ctLedgerBox').hidden = false;
+    }
+    ct.last = d; $('ctDone').hidden = false; info.textContent = '';
+    await ctSave(d);
+    ct.noEdited = false; ctRefreshNo();
+  }catch(e){ console.error(e); info.textContent = (gasOn() && !entry.docNo ? '날인대장에 기록하지 못해 발급하지 않았습니다: ' : '')+(e.message||e); }
+  finally{ btn.disabled = false; }
+}
+function copyText(text, note, area){
+  function fb(){ area.hidden = false; area.value = text; area.focus(); area.select(); note.textContent = '선택된 내용을 Ctrl+C로 복사해 주세요'; }
+  try{ navigator.clipboard.writeText(text).then(function(){ note.textContent = '복사했습니다. 날인대장의 순번 칸을 선택하고 붙여 넣으세요'; }, fb); }catch(e){ fb(); }
+}
+async function renderCertLog(){
+  var tb = $('clTable'), info = $('clInfo'), rows;
+  $('clCopy').hidden = gasOn();
+  if(gasOn()){
+    $('clBasis').textContent = '날인대장 · 불러오는 중'; info.textContent = '';
+    try{ var r = await gasCall('log', { limit: 50 }); rows = r.rows; if(gasInfo) gasInfo.lastSeq = r.lastSeq; $('clBasis').textContent = '날인대장 「'+(gasInfo ? gasInfo.sheet : '앵커늘봄')+'」 탭 · 최근 '+rows.length+'건';
+      if(gasInfo && gasInfo.url){ $('clOpen').href = gasInfo.url; $('clOpen').hidden = false; } }
+    catch(e){ $('clBasis').textContent = '날인대장'; info.textContent = e.message; rows = []; }
+  } else { rows = certLog; $('clBasis').textContent = '이 브라우저 기록 · '+rows.length+'건'; $('clOpen').hidden = true; }
+  tb.innerHTML = '<tr><th style="width:56px">순번</th><th style="width:100px">날인일자</th><th style="width:140px">문서번호</th><th style="width:100px">문서명</th><th style="width:140px">날인부서</th><th style="width:80px">담당자</th><th style="width:90px">수신처</th><th>비고</th></tr>'
+    + (rows.length ? rows.map(function(x){ return '<tr><td>'+esc(x.seq)+'</td><td>'+esc(x.sealDate)+'</td><td>'+esc(x.docNo)+'</td><td>'+esc(x.docName)+'</td><td>'+esc(x.dept)+'</td><td>'+esc(x.staff)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.note)+'</td></tr>'; }).join('') : '<tr><td colspan="8" class="hint">발급 내역이 없습니다.</td></tr>');
+}
+function bindCert(){
+  var tb = $('ctRows').tBodies[0], lb = ['근무 장소','프로그램명','교육 대상','직급','시수'];
+  for(var r = 0; r < 5; r++){ var tr = tb.insertRow(); for(var c = 0; c < 5; c++) tr.insertCell().innerHTML = '<input type="text" aria-label="'+lb[c]+' '+(r+1)+'">'; }
+  $('ctDate').value = today();
+  $('ctQ').addEventListener('input', renderCtPeople);
+  $('ctPeople').addEventListener('click', function(e){ var b = e.target.closest('[data-ctp]'); if(b) ctPick(b.dataset.ctp); });
+  $('ctTel').addEventListener('click', function(e){ var b = e.target.closest('[data-ctt]'); if(b){ ct.tel = b.dataset.ctt; ct.picked = {}; renderCtClasses(); ctFill(); } });
+  $('ctClasses').addEventListener('change', function(e){ var k = e.target.dataset.ctk; if(!k) return; if(e.target.checked) ct.picked[k] = 1; else delete ct.picked[k]; ctFill(); });
+  $('ctClasses').addEventListener('click', function(e){ var b = e.target.closest('[data-cta]'); if(!b) return; ctItems().forEach(function(i){ if(i.row.src === b.dataset.cta) ct.picked[ctKey(i)] = 1; }); renderCtClasses(); ctFill(); });
+  $('ctKind').addEventListener('change', ctRefreshNo); $('ctDate').addEventListener('change', ctRefreshNo);
+  $('ctNo').addEventListener('input', function(){ ct.noEdited = $('ctNo').value !== ctAutoNo(); });
+  $('ctNote').addEventListener('input', function(){ ct.noteEdited = !!$('ctNote').value; });
+  $('ctStaff').addEventListener('change', function(){ try{ localStorage.setItem('certStaff', $('ctStaff').value); }catch(e){} });
+  $('ctMake').addEventListener('click', ctMake);
+  $('ctAgain').addEventListener('click', function(){ if(ct.last) ctSave(ct.last).catch(function(e){ toast('다운로드하지 못했습니다: '+(e.message||e)); }); });
+  $('ctCopy').addEventListener('click', function(){ copyText($('ctLedger').value, $('ctCopyInfo'), $('ctLedger')); });
+  $('csAddStaff').addEventListener('click', function(){ certCfg.staff = readCertStaff().concat([{ name: '', title: '', tel: '' }]); renderCertSet(); });
+  $('csStaff').addEventListener('click', function(e){ var b = e.target.closest('[data-sdel]'); if(!b) return; var s = readCertStaff(); s.splice(+b.dataset.sdel, 1); certCfg.staff = s; renderCertSet(); });
+  $('csSave').addEventListener('click', async function(){
+    ['project1','project2','org','dept','headTitle','headName'].forEach(function(k){ certCfg[k] = $('cs-'+k).value; });
+    certCfg.nextSeq = Math.max(1, parseInt($('cs-nextSeq').value, 10) || 1); certCfg.dropLineSeg = $('cs-lineseg').value === '1';
+    certCfg.staff = readCertStaff().filter(function(s){ return s.name; });
+    kvPut('certCfg', certCfg); renderCertStaff(); ctRefreshNo();
+    var info = $('csInfo');
+    if(gasOn()){ var shared = JSON.parse(JSON.stringify(certCfg)); delete shared.nextSeq;
+      try{ await gasCall('setcfg', { cfg: shared }); info.textContent = '저장했습니다. 모든 담당자 화면에 적용됩니다.'; }catch(e){ info.textContent = '이 브라우저에만 저장했습니다. 공용 저장 실패: '+e.message; } }
+    else info.textContent = '이 브라우저에 저장했습니다.';
+  });
+  $('clReload').addEventListener('click', renderCertLog);
+  $('clCopy').addEventListener('click', function(){ copyText(certLog.slice().reverse().map(ledgerLine).join('\n'), $('clInfo'), $('clArea')); });
+}
+
 /* ---------- 시작 ---------- */
 mailCfg=JSON.parse(JSON.stringify(DEFAULT_MAIL));
-buildRows(); buildImgs(); buildPdfs(); bind(); bindImport(); bindOpsMail(); bindBackup(); bindSms();
+buildRows(); buildImgs(); buildPdfs(); bind(); bindImport(); bindOpsMail(); bindBackup(); bindSms(); bindCert();
 var startPage='info'; try{ var sp=localStorage.getItem('lecDocsPage'); if(PAGES.indexOf(sp)>=0) startPage=sp; }catch(e){}
 go(startPage);
 openDb().then(async function(){
@@ -2392,11 +2799,16 @@ openDb().then(async function(){
   var sc=await kvGet('smsCfg'); if(sc){ if((sc.ver||1)<DEFAULT_SMS.ver){ if(!sc.body || sc.body===SMS_BODY_V1) sc.body=DEFAULT_SMS.body; sc.ver=DEFAULT_SMS.ver; } smsCfg=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SMS)), sc); }
   var sl=await kvGet('smsLog'); if(sl) smsLog=sl;
   var mc=await kvGet('mailCfg'); if(mc){ delete mc.html; delete mc.notice; delete mc.oldBody; if(!mc.ver || mc.ver<DEFAULT_MAIL.ver){ if(!mc.body || mc.body===DEFAULT_MAIL.notice) mc.body=DEFAULT_MAIL.body; mc.ver=DEFAULT_MAIL.ver; } mailCfg=Object.assign(JSON.parse(JSON.stringify(DEFAULT_MAIL)), mc); }
+  var gs=await kvGet('gas'); if(gs) gas=Object.assign(gas, gs);
+  var cc=await kvGet('certCfg'); if(cc) applyCertCfg(cc, false);
+  var cl=await kvGet('certLog'); if(cl) certLog=cl;
+  bindGas();
   people = await dbAll();
   people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p); });
   cur = people.sort(function(a,b){return (b.updated||0)-(a.updated||0);})[0] || newPerson();
   renderAll(); go(page);
   bkInit();
+  if(gasOn()) gasPing(true).then(function(ok){ if(ok && gas.auto!==false) loadOpsLinks(true); else if(page==='cert') renderCert(); });
 });
 getDownloads();
 })();

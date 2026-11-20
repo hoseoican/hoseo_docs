@@ -108,10 +108,16 @@
       var r = parseSheet(aoa, base + ' · ' + n);
       if (r && r.length) { r.forEach(function (x) { x.sheet = n; }); rows = rows.concat(r); used.push(n); sheets.push({ name: n, count: r.length }); } else skipped.push(n);
     });
-    var hs = used.filter(function (n) { return /호서대/.test(n); });
-    return { rows: rows, used: used, skipped: skipped, sheets: sheets, defaultOn: hs.length ? hs : used };
+    return { rows: rows, used: used, skipped: skipped, sheets: sheets, defaultOn: defaultOn(used) };
   }
 
+  // 처음에 쓸 시트: 이름이 정확히 「호서대」인 시트, 없으면 「호서대」가 들어간 시트(모니터링·강사료 등 파생 탭 제외), 그것도 없으면 전부
+  function defaultOn(names) {
+    var exact = names.filter(function (n) { return norm(n) === '호서대'; });
+    if (exact.length) return exact;
+    var hs = names.filter(function (n) { return /호서대/.test(n) && !/모니터링|확인|강사료|컨설팅|피봇|연락처/.test(n); });
+    return hs.length ? hs : names;
+  }
   // 학교·기관별 모음
   function bySchool(rows) {
     var map = {};
@@ -150,6 +156,6 @@
     return s || e ? dot(s) + '~' + dot(e) : '';
   }
 
-  var api = { fullSchool: fullSchool, contactName: contactName, parseSheet: parseSheet, parseWorkbook: parseWorkbook, bySchool: bySchool, byPerson: byPerson, programText: programText, period: period, phones: phones, emailOf: emailOf, parseDate: parseDate, namesIn: namesIn, norm: norm };
+  var api = { fullSchool: fullSchool, contactName: contactName, parseSheet: parseSheet, parseWorkbook: parseWorkbook, bySchool: bySchool, byPerson: byPerson, programText: programText, period: period, phones: phones, emailOf: emailOf, parseDate: parseDate, namesIn: namesIn, norm: norm, defaultOn: defaultOn };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Ops = api;
 })(typeof self !== 'undefined' ? self : this);

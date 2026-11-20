@@ -943,7 +943,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-9';
+var APP_VERSION = '2026.11.20-10';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1705,7 +1705,9 @@ function renderNames(){
 function openNames(){ renderNames(); $('namesDlg').classList.add('on'); }
 
 /* ---------- 쪽 이동 ---------- */
-function go(p){
+function go(p, fromHistory){
+  // 브라우저 뒤로가기: 메뉴를 옮길 때마다 기록해 두고, 뒤로가기 하면 이전 메뉴로
+  if(!fromHistory && page !== p){ try{ history.pushState({ page: p }, '', '#'+p); }catch(e){} }
   page = p; try{ localStorage.setItem('lecDocsPage', p); }catch(e){}
   each('#nav label', function(l){ l.classList.toggle('on', l.dataset.page===p); });
   each('.work section', function(s){ s.hidden = s.dataset.sec!==p; });
@@ -2827,7 +2829,17 @@ function bindCert(){
 mailCfg=JSON.parse(JSON.stringify(DEFAULT_MAIL));
 buildRows(); buildImgs(); buildPdfs(); bind(); bindImport(); bindOpsMail(); bindBackup(); bindSms(); bindCert();
 var startPage='info'; try{ var sp=localStorage.getItem('lecDocsPage'); if(PAGES.indexOf(sp)>=0) startPage=sp; }catch(e){}
-go(startPage);
+var hp=(location.hash||'').slice(1); if(PAGES.indexOf(hp)>=0) startPage=hp;
+page=startPage;
+try{ history.replaceState({ page: startPage }, '', '#'+startPage); }catch(e){}
+go(startPage, true);
+window.addEventListener('popstate', function(e){
+  // 열린 창(팝업)이 있으면 창만 닫는다
+  var open=document.querySelectorAll('.modal.on, .pop.show');
+  if(open.length){ each('.modal.on', function(m){ m.classList.remove('on'); }); each('.pop.show', function(m){ m.classList.remove('show'); }); try{ history.pushState({ page: page }, '', '#'+page); }catch(x){} return; }
+  var p=e.state && e.state.page; if(!p){ var h=(location.hash||'').slice(1); p=PAGES.indexOf(h)>=0 ? h : startPage; }
+  if(PAGES.indexOf(p)>=0 && p!==page) go(p, true);
+});
 openDb().then(async function(){
   if(!idb) $('storeHint').textContent='이 브라우저에서는 저장이 안 됩니다. 창을 닫으면 내용이 사라집니다.';
   var s=await kvGet('settings'); if(s) settings=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SET)), s);
@@ -2847,7 +2859,7 @@ openDb().then(async function(){
   people = await dbAll();
   people.forEach(function(p){ p.imgs=p.imgs||{}; p.pdfs=p.pdfs||{}; p.schools=p.schools||['']; if(normRowDates(p)) dbPut(p); });
   cur = people.sort(function(a,b){return (b.updated||0)-(a.updated||0);})[0] || newPerson();
-  renderAll(); go(page);
+  renderAll(); go(page, true);
   bkInit();
   if(gasOn()) gasPing(true).then(function(ok){ if(ok && gas.auto!==false) loadOpsLinks(true); else if(page==='cert') renderCert(); });
 });

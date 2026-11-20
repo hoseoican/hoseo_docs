@@ -266,11 +266,12 @@
     dirs.forEach(function (d) { top[d].forEach(function (f) { all.push({ path: d + '/' + f.path, bytes: f.bytes }); }); });
     return [{ hint: wrapper, files: all }];
   }
-  async function expand(env, files) {
+  async function expand(env, files, onProg) {
     // files: [{name, bytes}] 브라우저에서 놓은 것 그대로. ZIP 은 풀어서 path 로
     var out = [];
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
+      if (onProg) onProg('expand', i, files.length, f.name);
       if (/\.zip$/i.test(f.name)) {
         var zip = await env.JSZip.loadAsync(f.bytes, { decodeFileName: decodeName });
         var names = Object.keys(zip.files);
@@ -284,11 +285,18 @@
     }
     return out;
   }
-  async function readDrop(env, files, tplResumeBytes) {
-    var items = await expand(env, files), groups = groupPeople(items), tpl = null;
+  async function readDrop(env, files, tplResumeBytes, onProg) {
+    var items = await expand(env, files, onProg), groups = groupPeople(items), tpl = null;
+    if (onProg) onProg('expand', files.length, files.length, '');
     try { if (tplResumeBytes) tpl = viewHwp(env, tplResumeBytes); } catch (e) { tpl = null; }
     var people = [];
-    for (var g = 0; g < groups.length; g++) people.push(await readPerson(env, groups[g].files, groups[g].hint, tpl));
+    for (var g = 0; g < groups.length; g++) {
+      if (onProg) onProg('read', g, groups.length, String(groups[g].hint || '').split('/').pop());
+      people.push(await readPerson(env, groups[g].files, groups[g].hint, tpl));
+      // 화면이 멈추지 않게 강사 한 명마다 한 번 쉰다
+      await new Promise(function (r) { setTimeout(r, 0); });
+    }
+    if (onProg) onProg('read', groups.length, groups.length, '');
     var names = people.map(function (p) { return p.name; }).filter(Boolean);
     people.forEach(function (p) {
       Object.keys(p.pdfs).forEach(function (k) { p.pdfs[k].forEach(function (f) {

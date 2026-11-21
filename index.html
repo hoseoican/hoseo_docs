@@ -90,6 +90,9 @@
   #nav .navg { display: flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.62); margin: 11px 6px 5px; letter-spacing: .2px; }
   #nav .navg span { font-size: 13px; color: #fff; opacity: .9; }
   #nav label { display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,.9); padding: 6px 12px 6px 26px; font-size: 13.5px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: background .15s, color .15s; }
+  #nav a.navx { display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,.9); padding: 6px 12px 6px 26px; font-size: 13.5px; font-weight: 500; border-radius: 8px; text-decoration: none; }
+  #nav a.navx:hover { background: rgba(255,255,255,.1); color: #fff; }
+  #nav a.navx i { font-style: normal; opacity: .6; font-size: 12px; }
   #nav label:hover { background: rgba(255,255,255,.1); color: #fff; }
   #nav label.on { background: #fff; color: var(--hs); font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
   #nav input { display: none; }
@@ -564,6 +567,11 @@
     <div class="navg"><span>⑤</span>증명서</div>
     <label data-page="cert"><input type="radio" name="page" value="cert">경력·출강증명서 발급<i class="st" data-sec="cert"></i></label>
     <label data-page="certlog"><input type="radio" name="page" value="certlog">발급 내역<i class="st" data-sec="certlog"></i></label>
+    <div class="navg"><span>⑥</span>운영 관리</div>
+    <a class="navx" data-mg="admin" href="#" title="학교·기관 접수, 강사 모집·배치, 운영 목록 (초등방과후 프로그램 운영 관리)">접수·배치 관리<i>↗</i></a>
+    <a class="navx" data-mg="join" href="manage/?join=1" target="_blank" rel="noopener" title="학교·기관 담당자가 들어오는 화면">기관 담당자 페이지<i>↗</i></a>
+    <a class="navx" data-mg="teacher" href="manage/" target="_blank" rel="noopener" title="강사가 수업을 신청하는 화면">강사 수업 신청<i>↗</i></a>
+    <a class="navx" data-mg="asst" href="manage/?r=asst" target="_blank" rel="noopener" title="보조강사가 수업을 신청하는 화면">보조강사 수업 신청<i>↗</i></a>
   </nav>
   <div class="sidefoot"><button type="button" class="bk" id="btnBackup">데이터 백업·복원<small id="bkState">백업한 적 없음</small></button><span id="storeHint"></span><span class="ver" id="verSide"></span></div>
 </aside>
@@ -1043,7 +1051,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-13';
+var APP_VERSION = '2026.11.21-14';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -2124,6 +2132,7 @@ function bind(){
   $('rows').addEventListener('input', function(e){ var t=e.target; if(!t.dataset.row) return; var arr=cur[t.dataset.row]=cur[t.dataset.row]||[{},{},{}]; arr[+t.dataset.r]=arr[+t.dataset.r]||{}; arr[+t.dataset.r][t.dataset.f]=t.value; changed(); });
   each('label', function(b){ b.onclick=function(){ cur.role=b.dataset.v; renderForm(); changed(); }; }, $('role'));
   each('#nav label', function(l){ l.onclick=function(e){ e.preventDefault(); go(l.dataset.page); }; });
+  each('#nav a.navx[data-mg="admin"]', function(a){ a.onclick=function(e){ e.preventDefault(); openManage(e.shiftKey); }; });
   $('btnPrev').onclick=function(){ var i=PAGES.indexOf(page); if(i>0) go(PAGES[i-1]); };
   $('btnNext').onclick=function(){ var i=PAGES.indexOf(page); if(i<PAGES.length-1) go(PAGES[i+1]); };
   $('btnAddSchool').onclick=function(){ cur.schools.push(''); renderSchools(); var l=$('schools').querySelectorAll('input'); l[l.length-1].focus(); };
@@ -2152,6 +2161,18 @@ function lsubFixGo(){
   go('out');
   setTimeout(function(){ var t=$('fixTable'); if(t && t.scrollIntoView) t.scrollIntoView({behavior:'smooth', block:'center'}); }, 80);
   toast('다시 보완할 서류에 「보완 필요」를 표시하고 사유를 넣으세요. 표시 후 「서류 제출·보완 요청」에서 문자를 보내면 강사 화면에 사유가 나옵니다');
+}
+/* 운영 관리(접수·배치) 화면 열기: 운영자 링크는 이 브라우저에만 기억 (Shift+클릭으로 다시 입력) */
+function openManage(reset){
+  var k=''; try{ k=localStorage.getItem('hsMgKey')||''; }catch(e){}
+  if(!k || reset){
+    var v=window.prompt('운영 관리 운영자 링크(…?a=…)를 붙여 넣어 주세요.\n이 브라우저에만 기억하고, 다음부터는 바로 열립니다.', '');
+    if(v===null) return;
+    var m=/[?&]a=([A-Za-z0-9]+)/.exec(v) || /^([A-Za-z0-9]{20,})$/.exec(v.trim());
+    if(!m){ toast('운영자 링크가 아닙니다. 주소에 ?a= 가 들어 있는 링크를 넣어 주세요'); return; }
+    k=m[1]; try{ localStorage.setItem('hsMgKey', k); }catch(e){}
+  }
+  window.open('manage/?a='+encodeURIComponent(k), '_blank');
 }
 function renderLsub(){
   var el=$('lsubBar'), p=cur; if(!el) return;

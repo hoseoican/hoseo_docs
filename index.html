@@ -397,6 +397,8 @@
   .mtags { display: flex; flex-wrap: wrap; gap: 4px; }
   .mtag { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; background: #FDE4E1; color: var(--danger); white-space: nowrap; }
   .mtag.fx { background: #FFF1DB; color: #9A5B00; }
+  .mtag.un { background: #F1EBEA; color: var(--mute); }
+  .stt tr.unreg td.nm b { color: var(--mute); }
   table.fixt td { vertical-align: middle; }
   table.fixt input[type=text] { width: 100%; min-width: 0; }
   table.fixt tr.on td { background: #FFF7EF; }
@@ -489,7 +491,7 @@
     <div class="navg"><span>④</span>제출</div>
     <label data-page="out"><input type="radio" name="page" value="out">서류 검토·생성<i class="st" data-sec="out"></i></label>
     <label data-page="mail"><input type="radio" name="page" value="mail">학교별 발송<i class="st" data-sec="mail"></i></label>
-    <label data-page="sms"><input type="radio" name="page" value="sms">서류 보완 요청<i class="st" data-sec="sms"></i></label>
+    <label data-page="sms"><input type="radio" name="page" value="sms">서류 제출·보완 요청<i class="st" data-sec="sms"></i></label>
     <div class="navg"><span>⑤</span>증명서</div>
     <label data-page="cert"><input type="radio" name="page" value="cert">경력·출강증명서 발급<i class="st" data-sec="cert"></i></label>
     <label data-page="certlog"><input type="radio" name="page" value="certlog">발급 내역<i class="st" data-sec="certlog"></i></label>
@@ -516,12 +518,12 @@
   <!-- ⓪ 기준정보: 강사 목록 -->
   <section data-sec="roster" hidden>
     <div class="card" style="max-width:1280px">
-      <h3>등록 강사 <small id="rsBasis"></small></h3>
+      <h3>강사 <small id="rsBasis"></small></h3>
       <div class="row" style="margin:0 0 10px;gap:8px;justify-content:space-between;align-items:center">
         <div class="fchips" id="rsFilter" style="margin:0"></div>
         <div class="row" style="margin:0;gap:6px"><select id="rsSort" title="정렬"><option value="miss">미구비 먼저</option><option value="name">이름순</option><option value="recent">최근 수정순</option></select><input type="text" id="rsQ" placeholder="이름·학교 찾기" autocomplete="off" style="width:220px"></div>
       </div>
-      <div class="bulkbar"><span id="rsSelInfo"></span><button type="button" class="ghost sm" id="rsAll">보이는 강사 전체 선택</button><button type="button" class="ghost sm" id="rsNone">선택 해제</button><span style="flex:1"></span><button type="button" class="ghost sm" id="rsSms">서류 보완 요청</button><button type="button" class="sm" id="rsZip">선택 강사 서류 다운로드</button><button type="button" class="del sm" id="rsDel">선택 강사 삭제</button></div>
+      <div class="bulkbar"><span id="rsSelInfo"></span><button type="button" class="ghost sm" id="rsAll">보이는 강사 전체 선택</button><button type="button" class="ghost sm" id="rsNone">선택 해제</button><span style="flex:1"></span><button type="button" class="ghost sm" id="rsReg" hidden>선택 강사 등록</button><button type="button" class="ghost sm" id="rsSms">서류 제출·보완 요청</button><button type="button" class="sm" id="rsZip">선택 강사 서류 다운로드</button><button type="button" class="del sm" id="rsDel">선택 강사 삭제</button></div>
       <div class="gview"><table class="stt" id="rsTable"></table></div>
     </div>
   </section>
@@ -825,7 +827,8 @@
           <label class="fld"><span>제출 이메일</span><input type="text" id="smMail" autocomplete="off"></label>
         </div>
         <details class="tpl" id="smTplBox"><summary>문자 양식 편집</summary><div class="inner">
-          <label class="fld" style="margin:8px 0"><span>본문</span><textarea id="smBody" style="min-height:150px"></textarea></label>
+          <label class="fld" style="margin:8px 0"><span>본문 (등록 강사 · 미제출·보완 요청)</span><textarea id="smBody" style="min-height:150px"></textarea></label>
+          <label class="fld" style="margin:8px 0"><span>본문 (미등록 강사 · 서류 전체 제출 요청)</span><textarea id="smBodyNew" style="min-height:130px"></textarea></label>
           <div class="ph-list" id="smPh"></div>
           <div class="row" style="margin:0"><button type="button" class="ghost sm" id="smReset">기본값 초기화</button></div>
         </div></details>
@@ -964,7 +967,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.20-19';
+var APP_VERSION = '2026.11.21-1';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -976,8 +979,8 @@ var SHARED_PAGES = { ops: 1, roster: 1, status: 1, mail: 1, sms: 1, cert: 1, cer
 var PAGE_META = {
   cert:    ['⑤ 증명서', '경력·출강증명서 발급', '운영현황에서 강사의 수업을 골라 경력증명서·출강증명서(한글)를 만듭니다. 구글 시트 연동이 되어 있으면 날인대장에 자동으로 기록하고 문서번호를 매깁니다.'],
   certlog: ['⑤ 증명서', '발급 내역', '날인대장(앵커늘봄 탭)에 쌓인 증명서 발급 내역을 봅니다.'],
-  roster: ['⓪ 기준정보', '강사 목록', '등록한 강사 전체를 부족 서류·발송 상태와 함께 봅니다. 여러 명을 골라 서류 다운로드·삭제·보완 요청을 한 번에 합니다.'],
-  sms:    ['④ 제출', '서류 보완 요청', '부족 서류가 있는 강사를 골라 제출 요청 문자를 만듭니다. 문자 내용·전화번호 복사, 휴대폰 문자 열기, 대량 문자용 CSV 다운로드를 제공합니다.'],
+  roster: ['⓪ 기준정보', '강사 목록', '등록한 강사 전체를 부족 서류·발송 상태와 함께 봅니다. 운영현황에는 있는데 아직 등록하지 않은 강사도 「미등록」으로 함께 보입니다. 여러 명을 골라 등록·서류 다운로드·삭제·제출 요청을 한 번에 합니다.'],
+  sms:    ['④ 제출', '서류 제출·보완 요청', '부족 서류가 있는 강사와 아직 서류를 내지 않은 미등록 강사를 골라 제출 요청 문자를 만듭니다. 문자 내용·전화번호 복사, 휴대폰 문자 열기, 대량 문자용 CSV 다운로드를 제공합니다.'],
   status: ['⓪ 기준정보', '서류 구비·발송 현황', '운영현황의 강사마다 서류가 준비됐는지, 학교에 보냈는지 한눈에 봅니다.'],
   ops:    ['⓪ 기준정보', '운영현황', '확정 운영현황 엑셀을 넣으면 학교·기관별 운영 현황(프로그램·분야·강사)을 정리하고 강사 기준정보를 만듭니다.'],
   info:   ['① 강사 정보', '인적사항', '구분과 인적사항을 넣으면 여러 서류의 같은 칸에 함께 들어갑니다.'],
@@ -1437,18 +1440,27 @@ function sendStateOf(p){
   return {st: k===sc.length ? 'sent' : k ? 'part' : 'wait', n:k, t:sc.length};
 }
 function rosterInfo(p){ return { p:p, name:(p.name||'').trim(), miss:missingDocs(p), fix:fixDocs(p), ok:readyOf(p).lv==='ok', send:sendStateOf(p), schools:schoolsOf(p) }; }
+// 운영현황(쓰는 시트·학기)에는 있는데 강사로 등록하지 않은 사람
+function unregList(){
+  if(typeof opsLoaded!=='function' || !opsLoaded()) return [];
+  return opsPeople().filter(function(o){ return !personBy(o.name); }).map(function(o){
+    var p={ id:'u:'+o.name, name:o.name, role:o.role, phone:o.tels[0]||'', schools:o.schools.slice(), updated:0, unreg:true };
+    return { p:p, name:o.name, miss:[], fix:[], ok:false, send:sendStateOf(p), schools:o.schools.slice(), unreg:true, flagged:o.flagged, ops:o };
+  });
+}
+function registerUnreg(o){ var t=blank(); applyOpsPerson(t, o, false); var k='u:'+o.name; if(smsLog[k]){ smsLog[t.id]=smsLog[k]; delete smsLog[k]; kvPut('smsLog', smsLog); } return t; }
 function rosterMatch(x, f, q){
   if(q){ var qq=q.replace(/\s/g,''); if(x.name.replace(/\s/g,'').indexOf(qq)<0 && !x.schools.some(function(s){ return s.replace(/\s/g,'').indexOf(qq)>=0; })) return false; }
-  return f==='all' || (f==='miss' && !x.ok) || (f==='ok' && x.ok) || (f==='unsent' && x.send.st!=='sent') || (f==='main' && x.p.role==='주강사') || (f==='sub' && x.p.role!=='주강사');
+  return f==='all' || (f==='unreg' && x.unreg) || (f==='miss' && !x.ok && !x.unreg) || (f==='ok' && x.ok) || (f==='unsent' && x.send.st!=='sent') || (f==='main' && x.p.role==='주강사') || (f==='sub' && x.p.role!=='주강사');
 }
 function rosterSort(list, how){
   return list.sort(function(a,b){
     if(how==='name') return natSort(a.name||'힣', b.name||'힣');
-    if(how==='miss') return (a.ok-b.ok) || ((b.miss.length+b.fix.length)-(a.miss.length+a.fix.length)) || natSort(a.name||'힣', b.name||'힣');
+    if(how==='miss') return ((a.ok?2:a.unreg?1:0)-(b.ok?2:b.unreg?1:0)) || ((b.miss.length+b.fix.length)-(a.miss.length+a.fix.length)) || natSort(a.name||'힣', b.name||'힣');
     return (b.p.updated||0)-(a.p.updated||0);
   });
 }
-function missTags(x){ return '<div class="mtags">'+x.miss.map(function(k){ return '<span class="mtag">'+esc(missText(k))+'</span>'; }).join('')+x.fix.map(function(f){ return '<span class="mtag fx" title="'+esc(f.why)+'">'+esc(fixName(f.k))+' 보완</span>'; }).join('')+'</div>'; }
+function missTags(x){ if(x.unreg) return '<div class="mtags"><span class="mtag un">미등록 · 서류 전체</span>'+(x.flagged?'<span class="mtag fx" title="운영현황의 강사명 칸에 이름 말고 다른 글자가 섞여 있습니다">이름 확인</span>':'')+'</div>'; return '<div class="mtags">'+x.miss.map(function(k){ return '<span class="mtag">'+esc(missText(k))+'</span>'; }).join('')+x.fix.map(function(f){ return '<span class="mtag fx" title="'+esc(f.why)+'">'+esc(fixName(f.k))+' 보완</span>'; }).join('')+'</div>'; }
 function sendBadge(sd){ return sd.st==='none' ? '<span class="hint">배치 학교 없음</span>' : sd.st==='sent' ? '<span class="badge sent">발송 완료</span>' : sd.st==='part' ? '<span class="badge part">일부 발송 '+sd.n+'/'+sd.t+'</span>' : '<span class="badge wait">미발송</span>'; }
 
 function renderFix(){
@@ -1468,25 +1480,32 @@ function renderFix(){
 }
 /* ---------- 강사 목록 화면 ---------- */
 var rsF='all', rsSel={}, rsLast=[];
-var RS_FILTERS=[['all','전체'],['miss','미구비'],['ok','구비 완료'],['|'],['unsent','미발송'],['|'],['main','주강사'],['sub','보조강사']];
+var RS_FILTERS=[['all','전체'],['miss','미구비'],['ok','구비 완료'],['unreg','미등록'],['|'],['unsent','미발송'],['|'],['main','주강사'],['sub','보조강사']];
 function rsSelected(){ return people.filter(function(p){ return rsSel[p.id]; }); }
+function rsSelUnreg(){ return unregList().filter(function(x){ return rsSel[x.p.id]; }); }
 function rsSelInfo(){
-  var sel=rsSelected();
-  $('rsSelInfo').innerHTML = sel.length ? '<b>'+sel.length+'명</b> 선택' : '선택한 강사 없음';
-  ['rsZip','rsDel','rsSms','rsNone'].forEach(function(id){ $(id).disabled=!sel.length; });
+  var sel=rsSelected(), un=rsSelUnreg(), n=sel.length+un.length;
+  $('rsSelInfo').innerHTML = n ? '<b>'+n+'명</b> 선택'+(un.length?' (미등록 '+un.length+'명)':'') : '선택한 강사 없음';
+  ['rsZip','rsDel'].forEach(function(id){ $(id).disabled=!sel.length; });
+  ['rsSms','rsNone'].forEach(function(id){ $(id).disabled=!n; });
+  $('rsReg').disabled=!un.length; $('rsReg').hidden=!unregList().length;
 }
 function renderRoster(){
-  var q=$('rsQ').value||'', all=people.map(rosterInfo);
-  var cnt={all:all.length, miss:0, ok:0, unsent:0, main:0, sub:0};
-  all.forEach(function(x){ cnt[x.ok?'ok':'miss']++; if(x.send.st!=='sent') cnt.unsent++; cnt[x.p.role==='주강사'?'main':'sub']++; });
-  $('rsBasis').textContent='강사 '+cnt.all+'명 · 구비 완료 '+cnt.ok+'명 · 미구비 '+cnt.miss+'명';
+  var q=$('rsQ').value||'', un=unregList(), all=people.map(rosterInfo).concat(un);
+  var cnt={all:all.length, miss:0, ok:0, unreg:un.length, unsent:0, main:0, sub:0};
+  all.forEach(function(x){ if(!x.unreg) cnt[x.ok?'ok':'miss']++; if(x.send.st!=='sent') cnt.unsent++; cnt[x.p.role==='주강사'?'main':'sub']++; });
+  $('rsBasis').textContent='등록 '+people.length+'명 · 구비 완료 '+cnt.ok+'명 · 미구비 '+cnt.miss+'명'+(un.length?' · 운영현황에만 있는 미등록 '+un.length+'명':'');
   $('rsFilter').innerHTML=RS_FILTERS.map(function(f){ return f[0]==='|' ? '<span class="sep"></span>' : '<button type="button" data-rf="'+f[0]+'" class="'+(rsF===f[0]?'on':'')+'">'+f[1]+'<b>'+cnt[f[0]]+'</b></button>'; }).join('');
   each('[data-rf]', function(b){ b.onclick=function(){ rsF=b.dataset.rf; renderRoster(); }; }, $('rsFilter'));
-  Object.keys(rsSel).forEach(function(id){ if(!people.some(function(p){ return p.id===id; })) delete rsSel[id]; });
+  Object.keys(rsSel).forEach(function(id){ if(!all.some(function(x){ return x.p.id===id; })) delete rsSel[id]; });
   var list=rosterSort(all.filter(function(x){ return rosterMatch(x, rsF, q); }), $('rsSort').value); rsLast=list;
   var allOn=list.length && list.every(function(x){ return rsSel[x.p.id]; });
   $('rsTable').innerHTML='<tr><th class="ck"><input type="checkbox" id="rsHead" title="보이는 강사 전체 선택"'+(allOn?' checked':'')+'></th><th style="width:130px">강사</th><th style="width:200px">배치 학교</th><th>부족 서류</th><th style="width:120px">발송</th><th style="width:100px">최근 수정</th><th style="width:60px"></th></tr>'+(list.length ? list.map(function(x){
     var p=x.p, lg=smsLog[p.id];
+    if(x.unreg) return '<tr class="unreg'+(rsSel[p.id]?' sel':'')+'"><td class="ck"><input type="checkbox" data-rs="'+esc(p.id)+'"'+(rsSel[p.id]?' checked':'')+'></td>'+
+      '<td class="nm"><b>'+esc(x.name)+'</b><small>'+p.role+'</small></td><td>'+esc(x.schools.join(', '))+'</td>'+
+      '<td>'+missTags(x)+'<small>'+(p.phone?esc(p.phone):'연락처 없음')+'</small>'+(lg ? '<div class="reqd">'+dotDate(lg.date)+' 제출 요청</div>' : '')+'</td>'+
+      '<td>'+sendBadge(x.send)+'</td><td></td><td><button type="button" class="ghost sm" data-rsreg="'+esc(x.name)+'">등록</button></td></tr>';
     var miss = x.ok ? '<span class="badge ok">구비 완료</span>' : (x.miss.length||x.fix.length) ? missTags(x) : '<span class="badge err">빨간 항목 확인</span>';
     return '<tr class="'+(rsSel[p.id]?'sel':'')+'"><td class="ck"><input type="checkbox" data-rs="'+esc(p.id)+'"'+(rsSel[p.id]?' checked':'')+'></td>'+
       '<td class="nm"><b>'+(esc(x.name)||'(이름 없음)')+'</b><small>'+p.role+'</small></td>'+
@@ -1494,10 +1513,11 @@ function renderRoster(){
       '<td>'+miss+(lg && !x.ok ? '<div class="reqd">'+dotDate(lg.date)+' 보완 요청</div>' : '')+'</td>'+
       '<td>'+sendBadge(x.send)+'</td><td><small>'+dotDate(p.updated||0)+'</small></td>'+
       '<td><button type="button" class="ghost sm" data-rsopen="'+esc(p.id)+'">열기</button></td></tr>';
-  }).join('') : '<tr><td colspan="7" class="hint" style="text-align:center;padding:18px">'+(people.length?'해당하는 강사가 없습니다':'등록한 강사가 없습니다')+'</td></tr>');
+  }).join('') : '<tr><td colspan="7" class="hint" style="text-align:center;padding:18px">'+(all.length?'해당하는 강사가 없습니다':'등록한 강사가 없습니다')+'</td></tr>');
   each('[data-rs]', function(cb){ cb.onchange=function(){ if(cb.checked) rsSel[cb.dataset.rs]=1; else delete rsSel[cb.dataset.rs]; cb.closest('tr').classList.toggle('sel', cb.checked); $('rsHead').checked=rsLast.length && rsLast.every(function(x){ return rsSel[x.p.id]; }); rsSelInfo(); }; }, $('rsTable'));
   $('rsHead').onchange=function(){ var on=$('rsHead').checked; rsLast.forEach(function(x){ if(on) rsSel[x.p.id]=1; else delete rsSel[x.p.id]; }); renderRoster(); };
   each('[data-rsopen]', function(b){ b.onclick=function(){ select(b.dataset.rsopen); go('out'); }; }, $('rsTable'));
+  each('[data-rsreg]', function(b){ b.onclick=function(){ var x=unregList().filter(function(u){ return u.name===b.dataset.rsreg; })[0]; if(!x) return; var t=registerUnreg(x.ops); delete rsSel[x.p.id]; renderAll(); select(t.id); go('info'); toast(x.name+' 강사를 등록했습니다. 인적사항과 제출서류를 넣어 주세요'); }; }, $('rsTable'));
   rsSelInfo();
 }
 async function rosterZip(){
@@ -1530,19 +1550,21 @@ function rosterDelete(){
 
 /* ---------- 서류 보완 요청 ---------- */
 var SMS_BODY_V1 = '[호서대 앵커늘봄] {성명} 강사님, 계약 서류 중 아래 서류가 아직 제출되지 않았습니다.\n- {부족서류}\n{제출기한}까지 {이메일} 로 보내 주시기 바랍니다. 문의 {연락처}';
-var DEFAULT_SMS = { ver:2, body:'[호서대 앵커늘봄] {성명} 강사님, 계약 서류 중 아래 서류의 제출·보완이 필요합니다.\n{요청서류}\n{제출기한}까지 {이메일} 로 보내 주시기 바랍니다. 문의 {연락처}', due:'', who:'', tel:'041-423-2427', email:'jihun@hoseo.edu' };
+var SMS_NEW_DOCS = ['이력 사항(주민등록번호·주소·학력·경력·자격증)','서명 이미지','증명사진','신분증 사본','통장 사본','채용신체검사서','잠복결핵 검사 확인서','최종학력 졸업증명서','자격증 사본·경력증명서(해당자)'];
+var DEFAULT_SMS = { ver:2, bodyNew:'[호서대 앵커늘봄] {성명} 강사님, {배치학교} 늘봄 프로그램 출강을 위한 계약 서류 제출을 부탁드립니다.\n[제출 서류]\n{요청서류}\n{제출기한}까지 {이메일} 로 보내 주시기 바랍니다. 문의 {연락처}', body:'[호서대 앵커늘봄] {성명} 강사님, 계약 서류 중 아래 서류의 제출·보완이 필요합니다.\n{요청서류}\n{제출기한}까지 {이메일} 로 보내 주시기 바랍니다. 문의 {연락처}', due:'', who:'', tel:'041-423-2427', email:'jihun@hoseo.edu' };
 var SMS_PH = [['성명','강사 성명'],['요청서류','미제출·보완 서류를 나눠 정리'],['부족서류','미제출 서류(한 줄에 하나씩)'],['보완서류','보완 필요 서류와 사유'],['배치학교','배치 학교'],['제출기한','제출기한'],['담당자','담당자'],['연락처','담당자 연락처'],['이메일','제출 이메일']];
-var smsCfg = JSON.parse(JSON.stringify(DEFAULT_SMS)), smsLog = {}, smsPick = {};
+var smsCfg = JSON.parse(JSON.stringify(DEFAULT_SMS)), smsLog = {}, smsPick = {}, smsLastTa = 'body';
 function smsDueDefault(){ return dotDate(Date.now()+7*86400000); }
-function smsNeeds(x){ return x.miss.some(function(k){ return k!=='phone'; }) || x.fix.length>0; }
-function smsTargets(){ return people.map(rosterInfo).filter(function(x){ return x.name && smsNeeds(x); }); }
+function smsNeeds(x){ return x.unreg || x.miss.some(function(k){ return k!=='phone'; }) || x.fix.length>0; }
+function smsTargets(){ return people.map(rosterInfo).filter(function(x){ return x.name && smsNeeds(x); }).concat(unregList()); }
 function phoneOf(p){ return (p.phone||'').replace(/\D/g,''); }
 function smsText(x){
   var docs=x.miss.filter(function(k){ return k!=='phone'; }).map(missText), fixes=x.fix.map(function(f){ return fixName(f.k)+': '+f.why; });
   var all=(docs.length ? '[미제출]\n- '+docs.join('\n- ') : '')+(docs.length&&fixes.length ? '\n' : '')+(fixes.length ? '[보완 필요]\n- '+fixes.join('\n- ') : '');
+  if(x.unreg){ docs=SMS_NEW_DOCS.slice(); all='- '+docs.join('\n- '); }
   var v={ '성명':x.name, '요청서류':all, '부족서류':docs.join('\n- '), '보완서류':fixes.join('\n- '), '배치학교':x.schools.join(', '), '제출기한':smsCfg.due||smsDueDefault(), '담당자':smsCfg.who||'', '연락처':smsCfg.tel||'', '이메일':smsCfg.email||'' };
   // 목록 자리표시자만 있는 줄이 비면 그 줄을 지운다(예: 「- {보완서류}」인데 보완할 서류가 없을 때)
-  return String(smsCfg.body||'').split('\n').filter(function(line){
+  return String((x.unreg ? (smsCfg.bodyNew||DEFAULT_SMS.bodyNew) : smsCfg.body)||'').split('\n').filter(function(line){
     var ks=(line.match(/\{(요청서류|부족서류|보완서류)\}/g)||[]); if(!ks.length) return true;
     return ks.some(function(t){ return v[t.slice(1,-1)]; });
   }).join('\n').replace(/\{([^{}]+)\}/g, function(m,k){ return v[k]!=null ? v[k] : m; });
@@ -1551,7 +1573,7 @@ function smsBytes(t){ var n=0; for(var i=0;i<t.length;i++) n += t.charCodeAt(i)>
 function smsMatch(x){
   var sc=$('smSchool').value, it=$('smItem').value, q=($('smQ').value||'').replace(/\s/g,'');
   if(sc && x.schools.indexOf(sc)<0) return false;
-  if(it && (it.indexOf('fix:')===0 ? !x.fix.some(function(f){ return 'fix:'+f.k===it; }) : x.miss.indexOf(it)<0)) return false;
+  if(it==='unreg'){ if(!x.unreg) return false; } else if(it && (it.indexOf('fix:')===0 ? !x.fix.some(function(f){ return 'fix:'+f.k===it; }) : x.miss.indexOf(it)<0)) return false;
   if(q && x.name.replace(/\s/g,'').indexOf(q)<0) return false;
   if($('smHideReq').checked && smsLog[x.p.id]) return false;
   return true;
@@ -1560,13 +1582,13 @@ function renderSms(){
   var all=smsTargets(), ids={}; all.forEach(function(x){ ids[x.p.id]=1; });
   Object.keys(smsPick).forEach(function(id){ if(!ids[id]) delete smsPick[id]; });
   // 걸러 보기 선택지(학교·부족 서류): 고른 값은 그대로 둔다
-  var scN={}, itN={}; all.forEach(function(x){ x.schools.forEach(function(s){ scN[s]=(scN[s]||0)+1; }); x.miss.forEach(function(k){ itN[k]=(itN[k]||0)+1; }); x.fix.forEach(function(f){ itN['fix:'+f.k]=(itN['fix:'+f.k]||0)+1; }); });
+  var scN={}, itN={}; all.forEach(function(x){ x.schools.forEach(function(s){ scN[s]=(scN[s]||0)+1; }); x.miss.forEach(function(k){ itN[k]=(itN[k]||0)+1; }); x.fix.forEach(function(f){ itN['fix:'+f.k]=(itN['fix:'+f.k]||0)+1; }); if(x.unreg) itN.unreg=(itN.unreg||0)+1; });
   var scV=$('smSchool').value, itV=$('smItem').value;
   $('smSchool').innerHTML='<option value="">배치 학교 전체</option>'+Object.keys(scN).sort(natSort).map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+' ('+scN[s]+')</option>'; }).join('');
-  $('smItem').innerHTML='<option value="">부족 서류 전체</option>'+MISS_ORDER.filter(function(k){ return itN[k]; }).map(function(k){ return '<option value="'+k+'">'+esc(missText(k))+' 미제출 ('+itN[k]+')</option>'; }).join('')+FIX_DOCS.filter(function(d){ return itN['fix:'+d[0]]; }).map(function(d){ return '<option value="fix:'+d[0]+'">'+esc(d[1])+' 보완 ('+itN['fix:'+d[0]]+')</option>'; }).join('');
+  $('smItem').innerHTML='<option value="">부족 서류 전체</option>'+(itN.unreg?'<option value="unreg">미등록 강사 · 서류 전체 ('+itN.unreg+')</option>':'')+MISS_ORDER.filter(function(k){ return itN[k]; }).map(function(k){ return '<option value="'+k+'">'+esc(missText(k))+' 미제출 ('+itN[k]+')</option>'; }).join('')+FIX_DOCS.filter(function(d){ return itN['fix:'+d[0]]; }).map(function(d){ return '<option value="fix:'+d[0]+'">'+esc(d[1])+' 보완 ('+itN['fix:'+d[0]]+')</option>'; }).join('');
   if(scN[scV]) $('smSchool').value=scV; if(itN[itV]) $('smItem').value=itV;
   var list=all.filter(smsMatch).sort(function(a,b){ return natSort(a.name,b.name); });
-  $('smBasis').textContent='미제출·보완 서류가 있는 강사 '+all.length+'명';
+  var nUn=all.filter(function(x){ return x.unreg; }).length; $('smBasis').textContent='미제출·보완 서류가 있는 강사 '+(all.length-nUn)+'명'+(nUn?' · 미등록 '+nUn+'명':'');
   $('smCount').textContent=list.length+'명 표시';
   $('smList').innerHTML = list.length ? list.map(function(x){
     var p=x.p, ph=phoneOf(p), lg=smsLog[p.id];
@@ -1575,10 +1597,11 @@ function renderSms(){
   each('[data-smli]', function(li){ li.onclick=function(e){ var id=li.dataset.smli, cb=li.querySelector('input'); if(e.target!==cb) cb.checked=!cb.checked; if(cb.checked) smsPick[id]=1; else delete smsPick[id]; li.classList.toggle('on', cb.checked); renderSmsPreview(); }; }, $('smList'));
   // 양식
   if(document.activeElement!==$('smBody')) $('smBody').value=smsCfg.body;
+  if(document.activeElement!==$('smBodyNew')) $('smBodyNew').value=smsCfg.bodyNew||DEFAULT_SMS.bodyNew;
   [['smDue','due'],['smWho','who'],['smTel','tel'],['smMail','email']].forEach(function(f){ if(document.activeElement!==$(f[0])) $(f[0]).value=smsCfg[f[1]]||''; });
   $('smDue').placeholder=smsDueDefault()+' (비우면 7일 뒤)';
   $('smPh').innerHTML='자리표시자(누르면 본문에 넣기): '+SMS_PH.map(function(x){ return '<code data-smph="'+x[0]+'" title="'+x[1]+'">{'+x[0]+'}</code>'; }).join(' ');
-  each('[data-smph]', function(el){ el.onclick=function(){ var ta=$('smBody'), at=ta.selectionStart||ta.value.length; ta.value=ta.value.slice(0,at)+'{'+el.dataset.smph+'}'+ta.value.slice(at); smsCfg.body=ta.value; kvPut('smsCfg', smsCfg); renderSmsPreview(); }; }, $('smPh'));
+  each('[data-smph]', function(el){ el.onclick=function(){ var ta=smsLastTa==='bodyNew' ? $('smBodyNew') : $('smBody'), at=ta.selectionStart||ta.value.length; ta.value=ta.value.slice(0,at)+'{'+el.dataset.smph+'}'+ta.value.slice(at); smsCfg[smsLastTa]=ta.value; kvPut('smsCfg', smsCfg); renderSmsPreview(); }; }, $('smPh'));
   renderSmsPreview();
 }
 function smsPicked(){ return smsTargets().filter(function(x){ return smsPick[x.p.id]; }).sort(function(a,b){ return natSort(a.name,b.name); }); }
@@ -1595,7 +1618,7 @@ function renderSmsPreview(){
   var byId={}; pk.forEach(function(x){ byId[x.p.id]=x; });
   each('[data-smcopy]', function(b){ b.onclick=function(){ copyText(smsText(byId[b.dataset.smcopy]), '문자 내용을 복사했습니다'); }; }, $('smPrev'));
   each('[data-smtel]', function(b){ b.onclick=function(){ copyText(Forms.fmtPhone(phoneOf(byId[b.dataset.smtel].p)), '전화번호를 복사했습니다'); }; }, $('smPrev'));
-  each('[data-smreq]', function(b){ b.onclick=function(){ var x=byId[b.dataset.smreq]; if(smsLog[x.p.id]) delete smsLog[x.p.id]; else smsLog[x.p.id]={ date:today(), at:Date.now(), name:x.name, items:x.miss.map(missText).concat(x.fix.map(fixLabel)) }; kvPut('smsLog', smsLog); renderSms(); }; }, $('smPrev'));
+  each('[data-smreq]', function(b){ b.onclick=function(){ var x=byId[b.dataset.smreq]; if(smsLog[x.p.id]) delete smsLog[x.p.id]; else smsLog[x.p.id]={ date:today(), at:Date.now(), name:x.name, items:x.unreg?['서류 전체(미등록)']:x.miss.map(missText).concat(x.fix.map(fixLabel)) }; kvPut('smsLog', smsLog); renderSms(); }; }, $('smPrev'));
 }
 function copyText(t, msg){
   function fb(){ var ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); var ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); toast(ok ? msg : '복사가 막혀 있습니다. 내용을 직접 선택해 복사해 주세요'); }
@@ -1604,7 +1627,7 @@ function copyText(t, msg){
 function smsCsv(){
   var pk=smsPicked(); if(!pk.length) return;
   var q=function(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; };
-  var rows=[['성명','전화번호','배치 학교','미제출 서류','보완 필요 서류','내용']].concat(pk.map(function(x){ var ph=phoneOf(x.p); return [x.name, ph.length>=10?Forms.fmtPhone(ph):'', x.schools.join(', '), x.miss.map(missText).join(', '), x.fix.map(function(f){ return fixName(f.k)+'('+f.why+')'; }).join(', '), smsText(x)]; }));
+  var rows=[['성명','전화번호','배치 학교','미제출 서류','보완 필요 서류','내용']].concat(pk.map(function(x){ var ph=phoneOf(x.p); return [x.name, ph.length>=10?Forms.fmtPhone(ph):'', x.schools.join(', '), x.unreg ? '서류 전체(미등록)' : x.miss.map(missText).join(', '), x.fix.map(function(f){ return fixName(f.k)+'('+f.why+')'; }).join(', '), smsText(x)]; }));
   var csv='﻿'+rows.map(function(r){ return r.map(q).join(','); }).join('\r\n');
   saveBlob(new Blob([csv], {type:'text/csv;charset=utf-8'}), '서류보완요청_'+pk.length+'명_'+today()+'.csv');
 }
@@ -1616,16 +1639,19 @@ function bindSms(){
   [['smDue','due'],['smWho','who'],['smTel','tel'],['smMail','email']].forEach(function(f){ $(f[0]).addEventListener('input', function(){ smsCfg[f[1]]=$(f[0]).value.trim(); kvPut('smsCfg', smsCfg); renderSmsPreview(); }); });
   $('smDue').addEventListener('blur', function(){ var v=Forms.normDates($('smDue').value); if(v!==$('smDue').value){ $('smDue').value=v; smsCfg.due=v.trim(); kvPut('smsCfg', smsCfg); renderSmsPreview(); } });
   $('smBody').addEventListener('input', function(){ smsCfg.body=$('smBody').value; kvPut('smsCfg', smsCfg); renderSmsPreview(); });
-  $('smReset').onclick=function(){ smsCfg.body=DEFAULT_SMS.body; smsCfg.ver=DEFAULT_SMS.ver; kvPut('smsCfg', smsCfg); $('smBody').value=smsCfg.body; renderSmsPreview(); toast('문자 양식을 기본값으로 초기화했습니다'); };
+  $('smBodyNew').addEventListener('input', function(){ smsCfg.bodyNew=$('smBodyNew').value; kvPut('smsCfg', smsCfg); renderSmsPreview(); });
+  $('smBody').addEventListener('focus', function(){ smsLastTa='body'; }); $('smBodyNew').addEventListener('focus', function(){ smsLastTa='bodyNew'; });
+  $('smReset').onclick=function(){ smsCfg.body=DEFAULT_SMS.body; smsCfg.bodyNew=DEFAULT_SMS.bodyNew; smsCfg.ver=DEFAULT_SMS.ver; kvPut('smsCfg', smsCfg); $('smBody').value=smsCfg.body; $('smBodyNew').value=smsCfg.bodyNew; renderSmsPreview(); toast('문자 양식을 기본값으로 초기화했습니다'); };
   $('smCopyAll').onclick=function(){ var pk=smsPicked(); copyText(pk.map(function(x){ var ph=phoneOf(x.p); return x.name+' '+(ph.length>=10?Forms.fmtPhone(ph):'(연락처 없음)')+'\n'+smsText(x); }).join('\n\n'), pk.length+'명의 문자 내용을 복사했습니다'); };
   $('smCsv').onclick=smsCsv;
-  $('smMark').onclick=function(){ var pk=smsPicked(); pk.forEach(function(x){ smsLog[x.p.id]={ date:today(), at:Date.now(), name:x.name, items:x.miss.map(missText).concat(x.fix.map(fixLabel)) }; }); kvPut('smsLog', smsLog); renderSms(); toast(pk.length+'명을 요청함으로 기록했습니다 ('+dotDate(today())+')'); };
+  $('smMark').onclick=function(){ var pk=smsPicked(); pk.forEach(function(x){ smsLog[x.p.id]={ date:today(), at:Date.now(), name:x.name, items:x.unreg?['서류 전체(미등록)']:x.miss.map(missText).concat(x.fix.map(fixLabel)) }; }); kvPut('smsLog', smsLog); renderSms(); toast(pk.length+'명을 요청함으로 기록했습니다 ('+dotDate(today())+')'); };
   // 강사 목록 화면
   $('rsQ').addEventListener('input', renderRoster); $('rsSort').onchange=renderRoster;
   $('rsAll').onclick=function(){ rsLast.forEach(function(x){ rsSel[x.p.id]=1; }); renderRoster(); };
   $('rsNone').onclick=function(){ rsSel={}; renderRoster(); };
   $('rsZip').onclick=rosterZip; $('rsDel').onclick=rosterDelete;
-  $('rsSms').onclick=function(){ var sel=rsSelected(), n=0; smsPick={}; sel.forEach(function(p){ var x=rosterInfo(p); if(x.name && smsNeeds(x)){ smsPick[p.id]=1; n++; } }); go('sms'); toast(n ? n+'명을 서류 보완 요청 대상으로 골랐습니다'+(n<sel.length?' (미제출·보완 서류가 없는 '+(sel.length-n)+'명은 뺐습니다)':'') : '선택한 강사 중 미제출·보완 서류가 있는 강사가 없습니다'); };
+  $('rsReg').onclick=function(){ var un=rsSelUnreg(); if(!un.length) return; un.forEach(function(x){ registerUnreg(x.ops); delete rsSel[x.p.id]; }); renderAll(); toast('미등록 강사 '+un.length+'명을 등록했습니다 (운영현황의 연락처·배치 학교·프로그램을 넣었습니다)'); };
+  $('rsSms').onclick=function(){ var sel=rsSelected(), un=rsSelUnreg(), n=0; smsPick={}; sel.forEach(function(p){ var x=rosterInfo(p); if(x.name && smsNeeds(x)){ smsPick[p.id]=1; n++; } }); un.forEach(function(x){ smsPick[x.p.id]=1; n++; }); var tot=sel.length+un.length; go('sms'); toast(n ? n+'명을 서류 제출·보완 요청 대상으로 골랐습니다'+(n<tot?' (미제출·보완 서류가 없는 '+(tot-n)+'명은 뺐습니다)':'') : '선택한 강사 중 미제출·보완 서류가 있는 강사가 없습니다'); };
   // 사이드바
   function sideSave(){ try{ localStorage.setItem('lecSide', JSON.stringify({f:sideF, s:sideS})); }catch(e){} }
   $('pq').addEventListener('input', renderList);

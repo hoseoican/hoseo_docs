@@ -87,11 +87,15 @@
       if (!g(c.program) && !g(c.main)) continue;
       var school = fullSchool(g(c.school)) || lastSchool; lastSchool = school;
       var row = { src: src, school: school, sigi: g(c.sigi), program: g(c.program).replace(/\s+/g, ' '), field: g(c.field), grade: g(c.grade), total: g(c.total),
-        start: parseDate(r[c.start]), end: parseDate(r[c.end]), contact: { name: contactName(g(c.cName)), tel: phones(g(c.cTel))[0] || '', email: emailOf(g(c.cMail)) }, org: g(c.org), schoolRaw: g(c.school).replace(/\s+/g, ''), people: [] };
+        start: parseDate(r[c.start]), end: parseDate(r[c.end]), contact: { name: contactName(g(c.cName)), tel: phones(g(c.cTel))[0] || '', email: emailOf(g(c.cMail)) }, org: g(c.org), schoolRaw: g(c.school).replace(/\s+/g, ''), people: [], open: [] };
+      // 「배치 예정」「미정」「구인 중」처럼 아직 강사가 정해지지 않은 자리
+      var OPEN = /배치\s*예정|미정|구인|모집|공석|섭외/;
+      if (OPEN.test(g(c.main))) row.open.push('주강사');
       var mn = namesIn(g(c.main)), mt = phones(mTel >= 0 ? g(mTel) : g(c.main + 1)), me = emailOf(mMail >= 0 ? g(mMail) : g(c.main + 2));
       mn.names.forEach(function (n, k) { row.people.push({ name: n, role: '주강사', tel: mn.clean ? mt[0] || '' : (mn.names.length === mt.length ? mt[k] : ''), email: mn.clean ? me : '', flagged: !mn.clean }); });
       auxCols.forEach(function (ac) {
         var an = namesIn(g(ac)), at = phones(g(ac + 1));
+        if (OPEN.test(g(ac))) row.open.push('보조강사');
         an.names.forEach(function (n, k) { row.people.push({ name: n, role: '보조강사', tel: an.names.length === at.length ? at[k] : (an.clean ? at[0] || '' : ''), email: '', flagged: !an.clean && an.names.length !== at.length }); });
       });
       if (row.school || row.program) out.push(row);

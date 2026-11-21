@@ -101,7 +101,7 @@ js=js[:a]+"async function saveBinaryBuf(buf,filename,msg){ downloadBlob(new Blob
 bad=[i+1 for i,l in enumerate(js.split('\n')) if '//' in l and not l.strip().startswith('//')]
 assert not bad, 'Lib에 // 가 남아 있습니다: 줄 '+str(bad[:10])
 lib='<script>\n'+js+'\n</script>\n'
-open('/home/claude/gas/Lib.html','w').write(lib)
+open(__import__('os').path.join(__import__('os').environ.get('GAS_OUT','../gas'),'Lib.html'),'w').write(lib)
 style=style.replace("nav.tabs a{","nav.tabs .tabbtn{border:0;background:none;font:inherit;cursor:pointer;").replace("nav.tabs a.on{","nav.tabs .tabbtn.on{")
-open('/home/claude/gas/Styles.html','w').write(style+'\n')
+open(__import__('os').path.join(__import__('os').environ.get('GAS_OUT','../gas'),'Styles.html'),'w').write(style+'\n')
 print(len(lib), 'location.hash' in js, 'SEED' in js, 'freshState' in js, 'demoSeed' in js, 'S.demo' in js)

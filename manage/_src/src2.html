@@ -2032,7 +2032,7 @@ function foldMain(tb,key){
 /* 운영 화면 맨 위: 학교 담당자·강사·접속 신청 화면 바로 열기 */
 /* 사업별 공지 주소 복사: 주강사 신청 · 보조강사 신청 · 학교 접속 신청 (총괄 관리자는 모든 사업, 사업 관리자는 자기 사업) */
 /* 화면 코드 버전: App.html의 APP_VER와 같아야 함(다르면 운영 화면 오른쪽 위에 「Lib 예전 버전」 표시) */
-const LIB_VER='11.26';
+const LIB_VER='11.27';
 /* 맨 위 바로가기: 화면마다 「열기 ↗」+「복사」를 한 묶음으로 (예전 「다른 화면 열기」·「공지 주소 복사」 두 줄을 합침) */
 function adminQuickNav(){
   const live=typeof persist==='function', base=S.webAppUrl||'', u=S.ui;
@@ -4046,10 +4046,20 @@ const stXName=c=>`${c.school} ${c.room||''} · ${c.prog||''}`;
 function stCxList(list,act,key){ return `<td colspan="9" class="st-cx">${list.map((c,j)=>`<div class="row" style="gap:8px;flex-wrap:nowrap;align-items:flex-start"><button class="btn sm" data-act="${act}" data-k="${esc(key)}" data-j="${j}">포함</button><div><b>${esc(stXName(c))}</b> <span class="muted">(${esc(c._at||'')})</span> — ${esc(c._x)}</div></div>`).join('')}${list.length>1?`<div class="row" style="margin-top:6px"><button class="btn sm" data-act="${act}" data-k="${esc(key)}" data-j="all">모두 포함</button></div>`:''}</td>`; }
 const stIn=d=>d.rows.filter(r=>!r._x), stOut=d=>d.rows.filter(r=>r._x);
 const stDsList=()=>((S.stats||{}).ds||[]).filter(d=>d.id!=='live'&&!stIsMc(d));
+/* 강사서류 화면(같은 주소)의 연동 설정을 읽어 그쪽에 등록된 운영현황 구글 시트 목록을 받는다 */
+function docsOpsList(){
+  return new Promise((res,rej)=>{ let q; try{ q=indexedDB.open('anchor-lecturer-docs',1); }catch(e){ rej(new Error('이 브라우저에서 강사서류 설정을 읽을 수 없습니다')); return; }
+    q.onupgradeneeded=()=>{ try{ q.transaction.abort(); }catch(e){} };
+    q.onerror=()=>rej(new Error('이 브라우저에서 강사서류 화면을 연 적이 없습니다. 강사서류 화면에서 구글 시트 연동을 먼저 해 주세요'));
+    q.onsuccess=()=>{ const db=q.result; try{ const g=db.transaction('kv','readonly').objectStore('kv').get('gas'); g.onsuccess=()=>{ db.close(); res(g.result||null); }; g.onerror=()=>{ db.close(); res(null); }; }catch(e){ db.close(); res(null); } };
+  }).then(g=>{ if(!g||!g.url||!g.code) throw new Error('강사서류 화면에서 구글 시트 연동(연동 주소·접근 코드)을 먼저 해 주세요');
+    return fetch(g.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({code:g.code,action:'ping'})}).then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.message||'강사서류 연동 주소에서 목록을 받지 못했습니다'); return j.ops||[]; }); });
+}
 function stDataPanel(){
   const P=S.ui.stPend, ds=((S.stats||{}).ds||[]).filter(d=>d.id!=='live'&&!stIsMc(d));
   return `<div class="panel stack st-pn"><div class="row between"><div class="row" style="gap:6px;align-items:center"><h3>자료 관리</h3>${qt(['운영 목록 엑셀(학교명 머리글이 있는 양식)','여러 파일을 한 번에 선택 가능','저장된 자료는 연도별로 묶여 보임','연도 줄 체크 = 그 연도 파일 모두 선택','연도는 파일 이름의 연도(없으면 시작일)','「운영 취소」 메모가 있는 학급은 제외','같은 연도·기관 파일을 두 번 올리면 중복 집계'])}</div><button class="btn sm" data-act="st-panel" data-v="">닫기</button></div>
    <div class="row"><label class="btn pri sm" style="cursor:pointer">운영 목록 엑셀 올리기<input type="file" id="stfile" accept=".xlsx,.xls" multiple hidden></label>
+    ${window.ON_PAGES?`<button class="btn sm" data-act="st-docs">강사서류 운영현황 시트 불러오기</button>${qt(['강사서류 화면 「운영현황」에 등록한 구글 시트를 그대로 읽음','시트 등록·삭제는 강사서류 화면에서','같은 브라우저에서 강사서류 연동(접근 코드)을 해 둔 경우에만 동작','운영 관리 배포 계정에 그 시트 보기 권한 필요','이미 저장된 연도·시기는 「이미 있음」으로 표시'])}`:''}
     </div>
    <div class="row">
     <label class="row small" style="gap:6px;align-items:center"><input type="checkbox" id="stlive" ${(S.kpi||{}).live?'checked':''}> 현재 시스템 학급 포함 (${esc(season().name)} · ${stLiveRows().length}학급)</label>${qt(['이 시스템의 지금 학급을 통계에 더함','취소 학급 제외','같은 시즌 엑셀을 올렸다면 끄기(중복 방지)'])}</div>
@@ -6485,6 +6495,13 @@ document.addEventListener('click',async e=>{
     case 'st-wy': S.ui.stWy=+el.dataset.v; break;
     case 'st-wfsave': { const y=el.dataset.v, L=[...new Set(String((document.getElementById('st-wf')||{}).value||'').split(/[\n,;]+/).map(x=>x.replace(/^\s*\d+[.)]\s*/,'').trim()).filter(Boolean))]; S.kpi={...(S.kpi||{}),welfare:{...((S.kpi||{}).welfare||{}),[y]:L}}; save(); toast(`${y}년 교육복지우선지원대상학교 ${L.length}곳을 저장했습니다`); break; }
     case 'st-wfprev': { const ta=document.getElementById('st-wf'); if(ta) ta.value=(((S.kpi||{}).welfare||{})[el.dataset.v]||[]).join('\n'); toast('이전 연도 명단을 불러왔습니다. 「저장」을 눌러야 반영됩니다'); return; }
+    case 'st-docs': {
+      el.disabled=true; el.textContent='불러오는 중…';
+      docsOpsList().then(L=>{ if(!L.length) throw new Error('강사서류 「운영현황」에 등록된 구글 시트가 없습니다');
+        const out=[], bad=[]; let ch=Promise.resolve();
+        L.forEach(o=>{ ch=ch.then(()=>run('adminSheetRead',ADMIN_KEY,'https:/'+'/docs.google.com/spreadsheets/d/'+o.id).then(d=>{ try{ const p=stParseA(d.sheets.map(x=>({name:x.name,A:x.values})),((o.label||'')+' '+d.name).trim()); p.src=o.id; out.push(p); }catch(err){ bad.push((o.label||o.id)+': '+err.message); } }).catch(e=>{ bad.push((o.label||o.id)+': '+(e&&e.message||String(e))); })); });
+        return ch.then(()=>{ S.ui.stPend=[...(S.ui.stPend||[]),...out]; toast(out.length?`운영현황 시트 ${out.length}개를 읽었습니다${bad.length?` (읽지 못함 ${bad.length}개)`:''}. 연도·시기를 확인하고 「통계 자료로 저장」을 눌러 주세요`:'읽지 못했습니다. '+(bad[0]||'')); if(bad.length) console.warn(bad.join('\n')); render(); });
+      }).catch(e=>{ toast(e&&e.message||String(e)); render(); }); return; }
     case 'st-gs': { const url=String((document.getElementById('st-gsurl')||{}).value||'').trim(); if(!/docs\.google\.com\/spreadsheets/.test(url)){ toast('구글 스프레드시트 링크를 붙여 넣어 주세요'); return; }
       el.disabled=true; el.textContent='불러오는 중…'; run('adminSheetRead',ADMIN_KEY,url).then(d=>{ try{ const p=stParseA(d.sheets.map(x=>({name:x.name,A:x.values})),d.name); p.src=url; S.ui.stPend=[...(S.ui.stPend||[]),p]; toast(`「${d.name}」에서 ${p.rows.length}학급을 읽었습니다`); }catch(err){ toast(err.message); } render(); }).catch(e=>{ toast(e&&e.message||String(e)); render(); }); return; }
     case 'st-gsre': { const d=((S.stats||{}).ds||[]).find(x=>x.id===el.dataset.id), url=((S.kpi||{}).srcs||{})[el.dataset.id]; if(!d||!url) return;

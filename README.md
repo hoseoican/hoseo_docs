@@ -45,3 +45,4 @@
 - 원본: `manage/_src/` — `src2.html`(화면 원본) → `to_gas.py` → `Lib.html`·`Styles.html`, `App.html`(껍데기) → `build_pages.py <gas 폴더>` → `manage/index.html`. `Code.gs`는 저장소에 올리지 않는다.
 - 강사서류 화면 왼쪽 메뉴 「⑥ 운영 관리」에서 연다. 「접수·배치 관리」는 운영자 링크를 처음 한 번 묻고 이 브라우저에만 기억한다(Shift+클릭으로 다시 입력).
 - 예전 웹앱 주소(`script.google.com/…/exec`)도 그대로 동작한다. 학교·강사에게 나가는 링크를 새 주소로 바꾸려면 운영 화면 「1 기준정보 → 웹앱 주소」에 `https://hoseoican.github.io/hoseo_docs/manage/`를 넣는다.
+- 운영 통계 「자료 올리기 → 강사서류 운영현황 시트 불러오기」: 강사서류 화면 「운영현황」에 등록한 구글 시트 목록(강사서류 연동 `ping`의 `ops`)을 받아 운영 관리 서버(`adminSheetRead`)로 읽는다. 같은 브라우저의 강사서류 연동 설정(IndexedDB `anchor-lecturer-docs` › `kv` › `gas`)을 쓴다. 시트 등록·삭제는 강사서류 화면 한 곳에서만 한다.

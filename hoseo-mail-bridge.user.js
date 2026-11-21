@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name         앵커늘봄 강사서류 → 호서대 메일 보내기
 // @namespace    https://hoseoican.github.io/hoseo_docs/
-// @version      0.3.2
+// @version      0.3.3
 // @description  강사서류 작성 프로그램의 「웹메일 발송」를 누르면 호서대 웹메일 쓰기 창에 받는 사람·제목·본문·ZIP 첨부를 채웁니다.
+// @match        https://hoseoican.github.io/hoseo_ops/*
 // @match        https://hoseoican.github.io/hoseo_docs/*
 // @match        https://mail.hoseo.edu/*
 // @grant        GM_setValue
@@ -13,12 +14,12 @@
 // @grant        GM_setClipboard
 // @grant        unsafeWindow
 // @run-at       document-idle
-// @downloadURL  https://hoseoican.github.io/hoseo_docs/hoseo-mail-bridge.user.js
-// @updateURL    https://hoseoican.github.io/hoseo_docs/hoseo-mail-bridge.user.js
+// @downloadURL  https://hoseoican.github.io/hoseo_ops/docs/hoseo-mail-bridge.user.js
+// @updateURL    https://hoseoican.github.io/hoseo_ops/docs/hoseo-mail-bridge.user.js
 // ==/UserScript==
 (function () {
   'use strict';
-  var VERSION = '0.3.2';
+  var VERSION = '0.3.3';
   var MAIL_HOME = 'https://mail.hoseo.edu/mail/allmail';
   var JOB_TTL = 20 * 60 * 1000; // 20분 지난 작업은 버림
 

@@ -1043,7 +1043,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-12';
+var APP_VERSION = '2026.11.21-13';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -2147,17 +2147,25 @@ function bind(){
 function newPerson(){ var p=blank(); people.push(p); dbPut(p); return p; }
 function select(id){ var p=people.filter(function(x){return x.id===id;})[0]; if(p){ cur=p; renderAll(); syLoadCur(p); } }
 function renderAll(){ renderList(); renderForm(); refresh(); renderFix(); mTopText(); renderLsub(); }
+function lsubFixGo(){
+  if(!cur) return;
+  go('out');
+  setTimeout(function(){ var t=$('fixTable'); if(t && t.scrollIntoView) t.scrollIntoView({behavior:'smooth', block:'center'}); }, 80);
+  toast('다시 보완할 서류에 「보완 필요」를 표시하고 사유를 넣으세요. 표시 후 「서류 제출·보완 요청」에서 문자를 보내면 강사 화면에 사유가 나옵니다');
+}
 function renderLsub(){
   var el=$('lsubBar'), p=cur; if(!el) return;
   renderLinkBar();
   el.hidden=!(p && p.lsub && p.lsub.at); if(el.hidden) return;
   el.classList.toggle('okd', !!p.lsub.ok);
   if(p.lsub.ok){
-    el.innerHTML='<b>강사 제출 검토 완료</b><span>'+new Date(p.lsub.ok).toLocaleString('ko-KR')+(p.lsub.okBy?' · '+esc(p.lsub.okBy):'')+' · 강사 제출 '+new Date(p.lsub.done||p.lsub.at).toLocaleString('ko-KR')+'</span><span style="flex:1"></span><button type="button" class="ghost sm" id="lsubUndo">검토 취소</button>';
+    el.innerHTML='<b>강사 제출 검토 완료</b><span>'+new Date(p.lsub.ok).toLocaleString('ko-KR')+(p.lsub.okBy?' · '+esc(p.lsub.okBy):'')+' · 강사 제출 '+new Date(p.lsub.done||p.lsub.at).toLocaleString('ko-KR')+'</span><span style="flex:1"></span><button type="button" class="ghost sm" id="lsubFix">보완 요청</button><button type="button" class="ghost sm" id="lsubUndo">검토 취소</button>';
+    $('lsubFix').onclick=lsubFixGo;
     $('lsubUndo').onclick=function(){ delete cur.lsub.ok; delete cur.lsub.okBy; save(); renderAll(); toast('검토 완료를 취소했습니다 (다시 검토 대기)'); };
     return;
   }
-  el.innerHTML='<b>강사 본인이 제출 링크로 '+(p.lsub.done?'제출했습니다':'입력하고 있습니다')+'</b><span>'+new Date(p.lsub.done||p.lsub.at).toLocaleString('ko-KR')+' · '+esc((p.lsub.items||[]).join(', '))+'</span><span style="flex:1"></span><button type="button" class="sm" id="lsubOk">검토 완료</button>';
+  el.innerHTML='<b>강사 본인이 제출 링크로 '+(p.lsub.done?'제출했습니다':'입력하고 있습니다')+'</b><span>'+new Date(p.lsub.done||p.lsub.at).toLocaleString('ko-KR')+' · '+esc((p.lsub.items||[]).join(', '))+'</span><span style="flex:1"></span><button type="button" class="ghost sm" id="lsubFix">보완 요청</button><button type="button" class="sm" id="lsubOk">검토 완료</button>';
+  $('lsubFix').onclick=lsubFixGo;
   $('lsubOk').onclick=function(){ cur.lsub.ok=Date.now(); cur.lsub.okBy=sy.me||''; save(); renderAll(); if(typeof syKick==='function' && syReady()){ sy.dirty[cur.id]=1; sySave(); syKick(); } toast('검토 완료로 표시했습니다'); };
 }
 function renderLinkBar(){

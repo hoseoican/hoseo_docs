@@ -1036,7 +1036,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-10';
+var APP_VERSION = '2026.11.21-11';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1696,7 +1696,8 @@ async function makeLinks(btn){
         if(x.unreg){ p=registerUnreg(x.ops); delete smsPick[x.p.id]; smsPick[p.id]=1; }
         if(sy.dirty[p.id] || !p._rev){ sy.dirty[p.id]=1; await syPushOne(p.id); }
         if(!p._rev) throw new Error('공유 자료로 올리지 못했습니다');
-        await gasCall('link', { id:p.id, days:14, by:sy.me });
+        var o=(typeof opsLoaded==='function' && opsLoaded()) ? opsPersonOf(p.name) : null;
+        await gasCall('link', { id:p.id, days:14, by:sy.me, cls: o ? o.classes.map(function(c){ return { school:c.school, field:c.field, program:c.program, grade:c.grade, sigi:c.sigi, start:c.start, end:c.end, role:c.role }; }) : undefined });
       }catch(e){ console.error(e); fail.push(x.name+(e && e.code==='action' ? ' (앱스 스크립트를 새 버전으로 바꿔야 됩니다)' : '')); }
     }
     await syPull();

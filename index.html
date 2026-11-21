@@ -978,7 +978,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-5';
+var APP_VERSION = '2026.11.21-6';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1825,8 +1825,10 @@ function openNames(){ renderNames(); $('namesDlg').classList.add('on'); }
 var PER_PAGES={ status:1, roster:1, mail:1, sms:1 };
 function renderPerBar(){
   var el=$('perBar'), fl=(typeof opsHasRows==='function' && opsHasRows()) ? opsFileList() : [];
-  el.hidden = !PER_PAGES[page] || fl.length<2; if(el.hidden) return;
-  el.innerHTML='<b>적용 학기</b>'+fl.map(function(f){ var o=!ops.per||ops.per.indexOf(f)>=0; return '<label class="'+(o?'on':'')+'"><input type="checkbox" data-pb="'+esc(f)+'"'+(o?' checked':'')+'>'+esc(f)+'</label>'; }).join('')+'<span class="hint">켠 학기의 강사·학교만 봅니다</span>';
+  var ex=fl.length ? people.filter(function(p){ return p.name.trim() && schoolsOf(p).length && !opsKnown(p); }).length : 0;
+  el.hidden = !PER_PAGES[page] || (fl.length<2 && !ex); if(el.hidden) return;
+  el.innerHTML=(fl.length>1 ? '<b>적용 학기</b>' : '')+(fl.length>1 ? fl : []).map(function(f){ var o=!ops.per||ops.per.indexOf(f)>=0; return '<label class="'+(o?'on':'')+'"><input type="checkbox" data-pb="'+esc(f)+'"'+(o?' checked':'')+'>'+esc(f)+'</label>'; }).join('')+'<span class="hint">켠 학기의 강사·학교만 봅니다</span>'+((ex && (page==='status' || page==='mail')) ? '<label class="'+(opsExtra?'on':'')+'" style="margin-left:auto" title="운영현황(모든 학기)에 이름이 없는 등록 강사입니다. 켜면 그 강사가 배치 학교로 넣은 학교의 현황·발송 대상에 함께 나옵니다"><input type="checkbox" id="pbExtra"'+(opsExtra?' checked':'')+'>운영현황에 없는 등록 강사 포함 <small>'+ex+'명</small></label>' : '');
+  if($('pbExtra')) $('pbExtra').onchange=function(){ opsExtra=$('pbExtra').checked; try{ localStorage.setItem('opsExtra', opsExtra?'1':'0'); }catch(e){} go(page, true); };
   each('[data-pb]', function(cb){ cb.onchange=function(){ var n=cb.dataset.pb, per=(ops.per||fl).slice(), k=per.indexOf(n); if(cb.checked && k<0) per.push(n); if(!cb.checked && k>=0) per.splice(k,1); if(!per.length){ cb.checked=true; toast('학기를 하나 이상 켜 주세요'); return; } ops.per = per.length===fl.length ? null : per; opsChanged(); go(page, true); refresh(); }; }, el);
 }
 function go(p, fromHistory){
@@ -1864,7 +1866,19 @@ function isOutside(s){
 }
 function schoolsOf(p){ return (p.schools||[]).map(function(s){return s.trim();}).filter(Boolean); }
 // 지금 고른 학기 기준 배치 학교: 운영현황의 다른 학기에만 있는(지난 학기) 학교는 뺀다. 운영현황에 없는, 직접 넣은 학교는 둔다
-function curSchools(p){ var idx=(typeof opsHasRows==='function' && opsHasRows()) ? pairIdx() : null; return schoolsOf(p).filter(function(s){ return !idx || !idx[sentKey(s, p.name)] || pairFiles(s, p.name).length>0; }); }
+var opsNamesCache=null, opsExtra=(function(){ try{ return localStorage.getItem('opsExtra')==='1'; }catch(e){ return false; } })();
+function normS(x){ return Ops.fullSchool(String(x||'').replace(/\s/g,'')); }
+// 운영현황(모든 학기·모든 시트)에 한 번이라도 나온 강사 이름
+function opsAllNames(){ var c=opsNamesCache; if(c && c.rows===ops.rows && c.n===(ops.rows||[]).length) return c.m; var m={}; (ops.rows||[]).forEach(function(r){ (r.people||[]).forEach(function(q){ m[q.name]=1; }); }); opsNamesCache={ rows:ops.rows, n:(ops.rows||[]).length, m:m }; return m; }
+function opsKnown(p){ return !!opsAllNames()[String(p.name||'').replace(/\s/g,'')]; }
+// 지금 고른 학기 기준 배치 학교. 운영현황에 나오는 강사는 고른 학기의 운영현황에 있는 학교만, 운영현황에 없는(직접 등록한) 강사는 넣은 학교 그대로
+function curSchools(p){
+  if(typeof opsHasRows!=='function' || !opsHasRows() || !opsKnown(p)) return schoolsOf(p);
+  var o=opsPersonOf(p.name); if(!o) return [];
+  return schoolsOf(p).filter(function(x){ return o.schools.indexOf(normS(x))>=0; });
+}
+// 현황·학교별 발송 목록에 넣을 학교: 운영현황에 없는 등록 강사는 「운영현황에 없는 강사 포함」을 켰을 때만
+function listSchools(p){ return (typeof opsHasRows!=='function' || !opsHasRows() || opsKnown(p) || opsExtra) ? curSchools(p).map(normS) : []; }
 function formsFor(p){ return FORMS.filter(function(f){ return f.roles.indexOf(p.role)>=0 && (!f.optional || settings.include1112); }); }
 function cleanFile(s){ return String(s||'').replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,' ').trim().replace(/[. ]+$/,''); }
 function namesCfg(){ var n=settings.names||{}; return { person:n.person||DEFAULT_NAMES.person, school:n.school||DEFAULT_NAMES.school, pdf:n.pdf||DEFAULT_NAMES.pdf, forms:n.forms||{} }; }
@@ -1903,7 +1917,7 @@ function examState(p){
   return {lv:'ok', t:'신체검사 1년 이내 ('+Math.round(diff)+'일 전 검진)'};
 }
 function plan(p, only){
-  var root=subject(p)+'/', files=[], sch=only ? [only] : curSchools(p);
+  var root=subject(p)+'/', files=[], sch=only ? [only] : (curSchools(p).length ? curSchools(p) : schoolsOf(p));
   formsFor(p).forEach(function(f){
     if(f.school) sch.forEach(function(s){
       if(isOutside(s)){   // 학교밖 기관: 0번만, 학교 폴더 없이 상위 폴더에
@@ -2092,7 +2106,7 @@ function opsSchools(){ if(!opsSchoolsCache) opsSchoolsCache = Ops.bySchool(opsRo
 function opsPeople(){ if(!opsPeopleCache) opsPeopleCache = Ops.byPerson(opsRows()); return opsPeopleCache; }
 function opsSchoolSet(){ var m={}; opsSchools().forEach(function(s){ m[s.school]=1; }); return m; }
 function opsPersonOf(name){ var n=String(name||'').replace(/\s/g,''); return n ? opsPeople().filter(function(p){ return p.name===n; })[0] : null; }
-function opsChanged(){ opsSchoolsCache=null; opsPeopleCache=null; pairIdxCache=null; kvPut('ops', ops); }
+function opsChanged(){ opsSchoolsCache=null; opsPeopleCache=null; pairIdxCache=null; opsNamesCache=null; kvPut('ops', ops); }
 async function loadOpsFiles(list){
   if(!list.length) return;
   var editedN=(ops.rows||[]).filter(function(r){ return r.edited; }).length;
@@ -2216,8 +2230,8 @@ function pairIdx(){
 // 지금 고른 학기의 강사인지: 운영현황의 다른 학기에만 있으면 아님. 운영현황에 아예 없는(직접 등록한) 강사는 포함
 function inTerm(name){
   if(typeof opsHasRows!=='function' || !opsHasRows()) return true;
-  var n=String(name||'').replace(/\s/g,''), m=pairIdx(), c=pairIdxCache; if(!c.names){ c.names={}; Object.keys(m).forEach(function(k){ c.names[k.split('|')[1]]=1; }); }
-  return !c.names[n] || !!opsPersonOf(n);
+  var n=String(name||'').replace(/\s/g,'');
+  return !opsAllNames()[n] || !!opsPersonOf(n);
 }
 function pairFiles(school, name){ var o=pairIdx()[sentKey(school, name)]; return o ? Object.keys(o).filter(function(f){ return !ops.per || ops.per.indexOf(f)>=0; }) : []; }
 // 발송 기록은 학기별로 본다. 예전 기록(학기 없음)은 발송한 날에 아직 끝나지 않은 학기 중 가장 먼저 시작하는 학기의 것으로 본다
@@ -2250,7 +2264,7 @@ function statusPairs(){
     out.push({ name:name, school:school, role: person ? person.role : role, classes:classes||[], person:person, rd:rd, sent:sn, miss:miss, warn:warn, st:st });
   }
   opsSchools().forEach(function(s){ s.rows.forEach(function(r){ r.people.forEach(function(p){ push(p.name, s.school, p.role, s.rows.filter(function(x){ return x.people.some(function(q){ return q.name===p.name; }); })); }); }); });
-  people.forEach(function(p){ var n=p.name.trim().replace(/\s/g,''); if(!n) return; curSchools(p).forEach(function(sc){ push(n, sc.replace(/\s/g,''), p.role, []); }); });
+  people.forEach(function(p){ var n=p.name.trim().replace(/\s/g,''); if(!n) return; listSchools(p).forEach(function(sc){ push(n, sc, p.role, []); }); });
   return out;
 }
 var ST_FILTERS = [['all','전체'],['ready','구비 완료·미발송'],['notready','미구비'],['none','미등록'],['sent','발송 완료'],['|'],['unsent','미발송 전체']];
@@ -2434,7 +2448,7 @@ var PLACEHOLDERS = [['학교명','받는 학교·기관 이름'],['담당자','�
 function mailSchoolList(){
   var m={};
   opsSchools().forEach(function(s){ m[s.school]=1; });
-  people.forEach(function(p){ curSchools(p).forEach(function(s){ m[s.replace(/\s/g,'')]=1; }); });
+  people.forEach(function(p){ listSchools(p).forEach(function(s){ m[s]=1; }); });
   return Object.keys(m).sort(function(a,b){ return a.localeCompare(b,'ko'); });
 }
 function mailPeopleOf(school){
@@ -2442,7 +2456,7 @@ function mailPeopleOf(school){
   var out=[], seen={}, os=opsSchools().filter(function(s){ return s.school===school; })[0];
   function push(name, role, classes){ if(seen[name]) return; seen[name]=1; out.push({ name:name, role:role, classes:classes||[], person: personBy(name) }); }
   if(os) os.rows.forEach(function(r){ r.people.forEach(function(p){ var op=opsPersonOf(p.name); push(p.name, p.role, op ? op.classes.filter(function(c){ return c.school===school; }) : []); }); });
-  people.forEach(function(p){ if(curSchools(p).map(function(s){return s.replace(/\s/g,'');}).indexOf(school)>=0 && p.name.trim()) push(p.name.trim().replace(/\s/g,''), p.role, []); });
+  people.forEach(function(p){ if(listSchools(p).indexOf(school)>=0 && p.name.trim()) push(p.name.trim().replace(/\s/g,''), p.role, []); });
   out.forEach(function(x){ if(x.person) x.role=x.person.role; });
   return out;
 }

@@ -46,7 +46,9 @@
   .doc .hd { display: flex; justify-content: space-between; gap: 8px; align-items: center; } .doc .hd b { font-size: 15px; }
   .st { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
   .st.ok { background: #E3F1E8; color: var(--ok); } .st.no { background: #FDE4E1; color: var(--danger); } .st.fx { background: #FFF1DB; color: #9A5B00; } .st.op { background: #F1EBEA; color: var(--mute); }
-  .doc p { margin: 4px 0 8px; font-size: 13px; color: var(--mute); } .doc .why { color: #9A5B00; font-weight: 600; }
+  .doc p { margin: 4px 0 8px; font-size: 13px; color: var(--mute); } .doc .use { color: var(--ink); font-weight: 600; }
+  .fldu { display: block; font-weight: 500; color: var(--mute); font-size: 12px; margin-top: 1px; }
+  .center { font-size: 13.5px; background: var(--hs-50); border: 1px solid var(--hs-100); border-radius: 10px; padding: 9px 12px; margin: 0 0 10px; } .center b { color: var(--hs-d); } .doc .why { color: #9A5B00; font-weight: 600; }
   .doc .acts { display: flex; gap: 6px; flex-wrap: wrap; } .doc .files { font-size: 13px; margin: 6px 0 0; padding: 0; list-style: none; } .doc .files li { display: flex; justify-content: space-between; gap: 6px; align-items: center; padding: 3px 0; }
   .cls { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; } .cls b { font-size: 15px; } .cls .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--hs-50); color: var(--hs-d); margin-right: 4px; }
   .cls .m { font-size: 13px; color: var(--mute); margin-top: 3px; }
@@ -90,6 +92,7 @@
       <div class="bar"><b id="barFill"></b></div>
       <ul class="todo" id="todo"></ul>
       <p class="hint" id="subInfo" style="margin:8px 0 0"></p>
+      <div class="center" id="center" hidden style="margin:10px 0 0"></div>
     </div>
 
     <div class="card" id="clsCard" hidden>
@@ -100,10 +103,10 @@
     <div class="card">
       <h2>인적사항</h2>
       <label class="f"><span>성명</span><input type="text" id="fName" disabled></label>
-      <label class="f"><span>주민등록번호</span><input type="tel" id="rrn" placeholder="900101-1234567" autocomplete="off" maxlength="14"></label>
-      <label class="f"><span>연락처</span><input type="tel" id="phone" placeholder="010-1234-5678" autocomplete="tel" maxlength="13"></label>
-      <label class="f"><span>주소</span><input type="text" id="address" placeholder="도로명 주소" autocomplete="street-address"></label>
-      <label class="f"><span>이메일</span><input type="email" id="email" autocomplete="email"></label>
+      <label class="f"><span>주민등록번호<small class="fldu">범죄경력 조회, 강사료 지급(세금 신고)에 씁니다</small></span><input type="tel" id="rrn" placeholder="900101-1234567" autocomplete="off" maxlength="14"></label>
+      <label class="f"><span>연락처<small class="fldu">학교·센터 연락용, 이력서</small></span><input type="tel" id="phone" placeholder="010-1234-5678" autocomplete="tel" maxlength="13"></label>
+      <label class="f"><span>주소<small class="fldu">이력서, 강사료 지급(세금 신고)에 씁니다</small></span><input type="text" id="address" placeholder="도로명 주소" autocomplete="street-address"></label>
+      <label class="f"><span>이메일<small class="fldu">이력서 (선택)</small></span><input type="email" id="email" autocomplete="email"></label>
     </div>
 
     <div class="card">
@@ -166,7 +169,7 @@ $('btnAuth').onclick = async function(){
 };
 $('ans').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('btnAuth').click(); });
 // 주민번호를 넣으면 다음부터 생년월일로 확인한다
-function afterSave(r){ me = r.me; if (digits(me.rrn).length >= 6) A = digits(me.rrn).slice(0, 6); render(); }
+function afterSave(r){ me = r.me; if (r.saved) dirty = false; if (digits(me.rrn).length >= 6) A = digits(me.rrn).slice(0, 6); render(); }
 
 /* ---------- 화면 ---------- */
 var ROWS = [
@@ -175,14 +178,14 @@ var ROWS = [
   { k: 'cert', t: '자격증', f: [['date', '취득일자', '2021. 3. 1.'], ['name', '자격사항', ''], ['issuer', '시행처', '']] }
 ];
 var DOCS = [
-  { k: 'sign', t: '서명', img: true, need: true, s: '아래 칸에 손가락(마우스)으로 크게 서명해 주세요. 서류의 서명 칸에 들어갑니다.' },
-  { k: 'photo', t: '증명사진', img: true, need: true, s: '최근 6개월 이내 증명사진' },
-  { k: 'idcard', t: '신분증 사본', img: true, need: true, s: '주민등록증 또는 운전면허증 앞면' },
-  { k: 'bank', t: '통장 사본', img: true, need: true, s: '본인 명의, 계좌번호가 선명하게' },
-  { k: 'exam', t: '채용신체검사서', need: true, s: 'PDF 또는 사진 (여러 장이면 한 번에 고르세요)', date: true },
-  { k: 'tb', t: '잠복결핵 검사 확인서', need: true, s: 'PDF 또는 사진' },
-  { k: 'grad', t: '최종학력 졸업증명서', need: true, s: 'PDF 또는 사진' },
-  { k: 'cert', t: '자격증 사본·경력증명서', need: false, multi: true, s: '해당하는 분만, 여러 개 올릴 수 있습니다' }
+  { k: 'sign', t: '서명', img: true, need: true, s: '아래 칸에 손가락(마우스)으로 크게 서명해 주세요.', use: '범죄경력조회 동의서, 이력서, 개인정보 동의서, 각종 서약서의 서명란' },
+  { k: 'photo', t: '증명사진', img: true, need: true, s: '최근 6개월 이내 증명사진 (배경이 밝은 정면 사진)', use: '이력서 사진란' },
+  { k: 'idcard', t: '신분증 사본', img: true, need: true, s: '주민등록증 또는 운전면허증 앞면', use: '본인 확인, 성범죄·아동학대 범죄경력 조회' },
+  { k: 'bank', t: '통장 사본', img: true, need: true, s: '본인 명의, 은행명·계좌번호가 선명하게', use: '강사료 지급 (앵커늘봄총괄센터 지출)' },
+  { k: 'exam', t: '채용신체검사서', need: true, s: 'PDF 또는 사진 (여러 장이면 한 번에 고르세요). 검진일부터 1년 동안 유효합니다.', use: '아동 관련 기관 출강 전 건강 확인 (학교 제출)', date: true },
+  { k: 'tb', t: '잠복결핵 검사 확인서', need: true, s: 'PDF 또는 사진', use: '학교 출강자 결핵 검사 확인 (학교 제출)' },
+  { k: 'grad', t: '최종학력 졸업증명서', need: true, s: 'PDF 또는 사진', use: '이력서 학력 확인' },
+  { k: 'cert', t: '자격증 사본·경력증명서', need: false, multi: true, s: '해당하는 분만, 여러 개 올릴 수 있습니다', use: '이력서 자격·경력 확인' }
 ];
 function has(k){ if (k === 'tb' && me.tbIn41 && me.files.exam.length) return true; return (me.files[k] || []).length > 0; }
 function needOf(k){ return (me.need || []).filter(function(x){ return x.k === k; })[0] || null; }
@@ -211,6 +214,9 @@ function render(){
   if (document.activeElement !== $('email')) $('email').value = me.email || '';
   if (!$('rowsBox').dataset.built) buildRows();
   renderCls();
+  var c = me.center;
+  $('center').hidden = !c;
+  if (c) $('center').innerHTML = (c.due ? '<b>제출기한</b> ' + esc(c.due) + '<br>' : '') + (c.tel || c.who ? '<b>문의</b> 호서대학교 앵커늘봄총괄센터 ' + esc(c.who || '') + ' ' + (c.tel ? '<a href="tel:' + esc(c.tel.replace(/[^0-9+]/g, '')) + '">' + esc(c.tel) + '</a>' : '') + '<br>' : '') + (c.exp ? '<span class="hint">이 링크는 ' + new Date(c.exp).toLocaleDateString('ko-KR') + '까지 쓸 수 있습니다.</span>' : '');
   var L = todoList(), n = L.filter(function(x){ return x.ok; }).length, nMiss = L.filter(function(x){ return x.st === 'miss'; }).length, nFix = L.filter(function(x){ return x.st === 'fix'; }).length;
   $('lead').textContent = n + ' / ' + L.length + ' 완료' + (nMiss ? ' · 미제출 ' + nMiss : '') + (nFix ? ' · 보완 ' + nFix : '');
   $('barFill').style.width = Math.round(n * 100 / L.length) + '%';
@@ -233,19 +239,35 @@ function renderDocs(){
     var n = needOf(d.k), ok = has(d.k), fx = n && n.st === 'fix', cls = fx ? 'fix' : ok ? 'done' : d.need ? 'need' : '', files = me.files[d.k] || [];
     var st = fx ? '<span class="st fx">보완 필요</span>' : ok ? '<span class="st ok">올림</span>' : d.need ? '<span class="st no">미제출</span>' : '<span class="st op">해당자</span>';
     var dn = d.date ? needOf('examDate') : null;
-    var h = '<div class="doc ' + cls + '" data-doc="' + d.k + '"><div class="hd"><b>' + d.t + '</b>' + st + '</div><p>' + esc(d.s) + (fx ? '<br><span class="why">보완 사유: ' + esc(n.why) + '</span>' : '') + (dn ? '<br><span class="why" style="color:var(--danger)">' + esc(dn.why) + '</span>' : '') + '</p>';
+    var h = '<div class="doc ' + cls + '" data-doc="' + d.k + '"><div class="hd"><b>' + d.t + '</b>' + st + '</div><p><span class="use">용도: ' + esc(d.use) + '</span><br>' + esc(d.s) + (fx ? '<br><span class="why">보완 사유: ' + esc(n.why) + '</span>' : '') + (dn ? '<br><span class="why" style="color:var(--danger)">' + esc(dn.why) + '</span>' : '') + '</p>';
     if (d.date) h += '<label class="f" style="margin-bottom:8px"><span style="font-weight:500;font-size:12.5px">검진일</span><input type="date" id="examDate" value="' + esc(me.examDate || '') + '"></label>';
     if (d.k === 'tb') h += '<label style="display:block;font-size:13px;margin:0 0 8px"><input type="checkbox" id="tbIn41"' + (me.tbIn41 ? ' checked' : '') + '> 채용신체검사서에 잠복결핵 검사 결과가 함께 있습니다</label>';
-    if (d.multi && files.length) h += '<ul class="files">' + files.map(function(n, i){ return '<li><span>' + esc(n) + '</span><button type="button" class="ghost sm" data-del="' + i + '">삭제</button></li>'; }).join('') + '</ul>';
+    var at = (me.fat || {})[d.k] || [];
+    if (d.multi && files.length) h += '<ul class="files">' + files.map(function(n, i){ return '<li><span>' + esc(n) + '</span><span style="display:flex;gap:4px"><button type="button" class="ghost sm" data-view="' + d.k + '" data-i="' + i + '">보기</button><button type="button" class="ghost sm" data-del="' + i + '">삭제</button></span></li>'; }).join('') + '</ul>';
+    else if (files.length && (me.files[d.k] || []).length) h += '<ul class="files"><li><span>올린 파일' + (at[0] ? ' · ' + new Date(at[0]).toLocaleDateString('ko-KR') : '') + '</span><button type="button" class="ghost sm" data-view="' + d.k + '" data-i="0">보기</button></li></ul>';
     if (d.k === 'sign') h += (ok ? '<p style="margin:0 0 6px">올린 서명이 있습니다. 바꾸려면 아래에 다시 서명하세요.</p>' : '') + '<canvas id="pad"></canvas><div class="acts" style="margin-top:8px"><button type="button" class="ghost sm" id="padClear">지우기</button><button type="button" class="sm" id="padOk" style="flex:1">서명 올리기</button></div><div class="acts" style="margin-top:6px"><button type="button" class="ghost sm" data-pick="sign">서명 사진으로 올리기</button></div><div class="prog" data-prog="sign"></div></div>';
     else h += '<div class="acts"><button type="button" class="' + (ok && !d.multi ? 'ghost ' : '') + 'sm" data-cam="' + d.k + '">사진 찍기</button><button type="button" class="ghost sm" data-pick="' + d.k + '">' + (d.img ? '사진 고르기' : '파일 고르기') + '</button></div><div class="prog" data-prog="' + d.k + '"></div></div>';
     return h;
   }).join('');
   Array.prototype.forEach.call(document.querySelectorAll('[data-cam],[data-pick]'), function(b){ b.onclick = function(){ pick(b.dataset.cam || b.dataset.pick, !!b.dataset.cam); }; });
   Array.prototype.forEach.call(document.querySelectorAll('[data-del]'), function(b){ b.onclick = async function(){ if (!confirm('이 파일을 지울까요?')) return; try { afterSave(await call('lfile', { k: 'cert', del: true, i: +b.dataset.del })); toast('지웠습니다'); } catch (e) { toast(e.message); } }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-view]'), function(b){ b.onclick = function(){ viewFile(b.dataset.view, +b.dataset.i, b); }; });
   initPad();
   if ($('examDate')) $('examDate').onchange = function(){ saveText(false, true); };
   if ($('tbIn41')) $('tbIn41').onchange = function(){ saveText(false, true); };
+}
+
+/* ---------- 올린 파일 보기 ---------- */
+async function viewFile(k, i, btn){
+  var w = null; try { w = window.open('', '_blank'); if (w) w.document.write('<p style="font-family:sans-serif;padding:20px">파일을 여는 중입니다…</p>'); } catch (e) {}
+  var lb = btn.textContent; btn.disabled = true; btn.textContent = '여는 중…';
+  try {
+    var r = await call('lview', { k: k, i: i }), bin = atob(r.b64), u8 = new Uint8Array(bin.length);
+    for (var j = 0; j < bin.length; j++) u8[j] = bin.charCodeAt(j);
+    var url = URL.createObjectURL(new Blob([u8], { type: r.mime }));
+    if (w && !w.closed) w.location.href = url; else { var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+  } catch (e) { if (w) w.close(); toast(e.message); }
+  finally { btn.disabled = false; btn.textContent = lb; }
 }
 
 /* ---------- 입력 저장 ---------- */
@@ -266,9 +288,12 @@ async function saveText(submit, quiet){
     var miss = todoList().filter(function(x){ return !x.ok && !(x.st === 'miss' && filled[x.k]); });
     if (miss.length && !confirm('아직 ' + miss.map(function(x){ return x.t + (x.st === 'fix' ? '(보완)' : ''); }).join(', ') + ' 이(가) 남았습니다. 그래도 지금까지 낸 것으로 제출을 알릴까요?')) return false;
   }
-  try { afterSave(await call('lput', { data: o, submit: !!submit })); if (!quiet) toast(submit ? '제출을 알렸습니다. 센터에서 확인 후 연락드립니다' : '저장했습니다'); return true; }
+  try { var rr = await call('lput', { data: o, submit: !!submit }); rr.saved = true; afterSave(rr); if (!quiet) toast(submit ? '제출을 알렸습니다. 센터에서 확인 후 연락드립니다' : '저장했습니다'); return true; }
   catch (e) { toast(e.message); return false; }
 }
+var dirty = false;
+document.addEventListener('input', function(e){ if (e.target.closest && e.target.closest('#vMain') && e.target.type !== 'file' && e.target.type !== 'checkbox' && e.target.type !== 'date') dirty = true; });
+window.addEventListener('beforeunload', function(e){ if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 $('btnSave').onclick = function(){ saveText(false); };
 $('btnSubmit').onclick = async function(){ if (await saveText(true)) window.scrollTo(0, 0); };
 $('rrn').addEventListener('input', function(){ this.value = fmtRrn(this.value); });

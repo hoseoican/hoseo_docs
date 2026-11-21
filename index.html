@@ -404,7 +404,13 @@
   .mtag { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; background: #FDE4E1; color: var(--danger); white-space: nowrap; }
   .mtag.fx { background: #FFF1DB; color: #9A5B00; }
   .mtag.un { background: #F1EBEA; color: var(--mute); }
+  a.popen { color: var(--hs-d); text-decoration: underline; text-underline-offset: 2px; }
+  .drop[data-img] { position: relative; }
+  .vbig { position: absolute; left: 8px; top: 8px; padding: 3px 8px !important; font-size: 11.5px !important; }
   .mtag.tm { background: #E4ECF7; color: #2C5282; } .mtag.ls { background: #E6F4EA; color: #1E6B3A; font-weight: 700; }
+  #lsubBar.okd { background: #F3F1F0; border-color: var(--line); color: var(--mute); }
+  #linkBar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; padding: 8px 14px; border-radius: 10px; background: #fff; border: 1px solid var(--line); font-size: 13px; max-width: 1080px; }
+  #linkBar .lk { font-size: 12.5px; font-weight: 600; } #linkBar .lk.ok { color: var(--ok); } #linkBar .lk.exp, #linkBar .lk.lock { color: var(--danger); } #linkBar .lk.none { color: var(--mute); }
   #lsubBar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: #E6F4EA; border: 1px solid #BFE0C9; color: #1E5B34; font-size: 13.5px; max-width: 1080px; }
   b.dual { font-weight: 700; color: #5B3B8C; }
   th.sortable { cursor: pointer; user-select: none; } th.sortable:hover { text-decoration: underline; } th.sortable i { font-style: normal; font-size: 10px; margin-left: 4px; color: var(--accent, #8A1538); }
@@ -741,6 +747,7 @@
   <!-- ① 인적사항 -->
   <section data-sec="info">
     <div id="lsubBar" hidden></div>
+    <div id="linkBar" hidden></div>
     <div id="imp"><b>제출서류 불러오기</b> <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">강사가 보낸 <b>ZIP</b>, <b>폴더</b>(강사별 폴더를 모은 상위 폴더도 가능), 또는 <b>한글(.hwp·.hwpx)·PDF·JPG</b> 파일을 끌어다 놓으면 빈칸을 미리 채웁니다. 화면 어디에 놓아도 됩니다.<br><b>이력서</b>: 성명·생년월일·연락처·주소·이메일·학력·경력·자격·증명사진<br><b>0번 동의서</b>: 주민등록번호 · <b>서약서들</b>: 학교명, 서명 이미지 · <b>2번</b>: 신분증·통장 사진<br><b>PDF·JPG</b>: 파일 이름으로 신체검사서·잠복결핵·졸업증명서·경력/자격 칸에 나눠 넣습니다. JPG는 PDF로 바꿉니다. 신체검사서 이름의 「(2026. 6.)」은 검진일로 씁니다.<br>여러 강사의 폴더가 든 ZIP은 <b>강사별로 나눠서</b> 목록에 넣습니다. 이미 있는 강사(같은 이름)는 <b>비어 있는 칸만</b> 채우고 적어 둔 내용은 바꾸지 않습니다.<br>PDF로 낸 이력서·신분증과 스캔본은 글자를 읽지 못하니 직접 넣어 주세요.</span></span>
       <div class="s" id="impText"></div>
       <div class="impprog"><i id="impBar"></i></div>
@@ -1036,7 +1043,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-11';
+var APP_VERSION = '2026.11.21-12';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1682,7 +1689,28 @@ function reqDays(lg){ return lg ? Math.floor((new Date(today()+'T00:00:00')-new 
 function reqText(lg){ var d=reqDays(lg); return dotDate(lg.date)+' 요청'+((lg.n||1)>1?' '+lg.n+'회':'')+(d>0?' · '+d+'일 지남':''); }
 // 강사 본인 제출 링크 (강사 자료 공유를 켜야 만들 수 있다)
 var APPLY_URL = 'https://hoseoican.github.io/hoseo_docs/apply.html';
-function linkOk(p){ return !!(p && p.lnk && p.lnk.t && p.lnk.exp > Date.now()); }
+function linkOk(p){ return !!(p && p.lnk && p.lnk.t && p.lnk.exp > Date.now() && !p.lnk.lock); }
+// 링크 상태: none·ok·exp(기간 지남)·lock(본인 확인 5번 틀림)
+function linkState(p){ var l=p && p.lnk; if(!l || !l.t) return {st:'none', t:'제출 링크 없음'}; if(l.lock) return {st:'lock', t:'잠김(본인 확인 5번 틀림)'}; if(l.exp<=Date.now()) return {st:'exp', t:'기간 지남 ('+dotDate(l.exp)+')'}; var d=Math.ceil((l.exp-Date.now())/86400000); return {st:'ok', t:dotDate(l.exp)+'까지 ('+d+'일 남음)'}; }
+// 링크를 만들거나 14일 연장(같은 주소). renew면 새 주소로 바꾼다(예전 링크는 바로 막힘)
+async function linkCall(p, renew){
+  var o=(typeof opsLoaded==='function' && opsLoaded()) ? opsPersonOf(p.name) : null;
+  return gasCall('link', { id:p.id, days:14, by:sy.me, renew:!!renew, due: smsCfg.due||smsDueDefault(), who: smsCfg.who||sy.me||'', tel: smsCfg.tel||'', email: smsCfg.email||'',
+    cls: o ? o.classes.map(function(c){ return { school:c.school, field:c.field, program:c.program, grade:c.grade, sigi:c.sigi, start:c.start, end:c.end, role:c.role }; }) : undefined });
+}
+async function linkAct(act){
+  var p=cur; if(!syReady()){ toast('제출 링크는 「다른 직원과 강사 자료 함께 쓰기」를 켠 뒤 쓸 수 있습니다'); return; }
+  if(act==='copy'){ copyText(linkOf(p), '제출 링크를 복사했습니다'); return; }
+  if(act==='renew' && !confirm('새 주소로 바꿀까요? 예전에 보낸 링크는 바로 쓸 수 없게 됩니다.')) return;
+  if(act==='off' && !confirm('이 강사의 제출 링크를 막을까요? 강사는 더 이상 열 수 없습니다.')) return;
+  try{
+    if(sy.dirty[p.id] || !p._rev){ sy.dirty[p.id]=1; await syPushOne(p.id); }
+    if(!p._rev) throw new Error('공유 자료로 올리지 못했습니다');
+    if(act==='off') await gasCall('unlink', { id:p.id, by:sy.me }); else await linkCall(p, act==='renew');
+    await syPull(); renderAll();
+    toast(act==='off' ? '제출 링크를 막았습니다' : act==='renew' ? '새 링크를 만들었습니다 (14일). 강사에게 새 링크를 보내 주세요' : act==='make' ? '제출 링크를 만들었습니다 (14일)' : '제출 링크를 14일 연장했습니다 (주소는 같습니다)');
+  }catch(e){ console.error(e); toast(e && e.code==='action' ? '앱스 스크립트를 새 버전으로 바꿔야 됩니다' : '처리하지 못했습니다: '+((e && e.message)||e)); }
+}
 function linkOf(p){ return linkOk(p) ? APPLY_URL+'?t='+p.lnk.t : ''; }
 async function makeLinks(btn){
   if(!syReady()){ toast('제출 링크는 「운영현황 → 구글 시트 연동」에서 「다른 직원과 강사 자료 함께 쓰기」를 켠 뒤 만들 수 있습니다'); return; }
@@ -1696,8 +1724,7 @@ async function makeLinks(btn){
         if(x.unreg){ p=registerUnreg(x.ops); delete smsPick[x.p.id]; smsPick[p.id]=1; }
         if(sy.dirty[p.id] || !p._rev){ sy.dirty[p.id]=1; await syPushOne(p.id); }
         if(!p._rev) throw new Error('공유 자료로 올리지 못했습니다');
-        var o=(typeof opsLoaded==='function' && opsLoaded()) ? opsPersonOf(p.name) : null;
-        await gasCall('link', { id:p.id, days:14, by:sy.me, cls: o ? o.classes.map(function(c){ return { school:c.school, field:c.field, program:c.program, grade:c.grade, sigi:c.sigi, start:c.start, end:c.end, role:c.role }; }) : undefined });
+        await linkCall(p, false);
       }catch(e){ console.error(e); fail.push(x.name+(e && e.code==='action' ? ' (앱스 스크립트를 새 버전으로 바꿔야 됩니다)' : '')); }
     }
     await syPull();
@@ -1764,7 +1791,7 @@ function renderSmsPreview(){
   ['smCopyAll','smCsv','smMark','smNone','smLink'].forEach(function(id){ $(id).disabled=!pk.length; });
   $('smPrev').innerHTML = pk.length ? pk.map(function(x){
     var p=x.p, t=smsText(x), ph=phoneOf(p), b=smsBytes(t), lg=smsLog[p.id];
-    return '<div class="smsitem"><div class="hd"><b>'+esc(x.name)+'</b><small>'+(ph.length>=10?esc(Forms.fmtPhone(ph)):'연락처 없음')+'</small>'+(lg?'<span class="badge '+(reqDays(lg)>=7?'wait':'sent')+'">'+reqText(lg)+'</span>':'')+(linkOk(p)?'<span class="badge ok" title="'+esc(linkOf(p))+'">링크 ~'+dotDate(new Date(p.lnk.exp).toISOString().slice(0,10))+'</span>':'')+'<span class="by">'+b+'바이트 · '+(b<=90?'단문':'장문')+'</span></div>'+
+    return '<div class="smsitem"><div class="hd"><b>'+esc(x.name)+'</b><small>'+(ph.length>=10?esc(Forms.fmtPhone(ph)):'연락처 없음')+'</small>'+(lg?'<span class="badge '+(reqDays(lg)>=7?'wait':'sent')+'">'+reqText(lg)+'</span>':'')+(function(){ var l=linkState(p); return l.st==='ok' ? '<span class="badge ok" title="'+esc(linkOf(p))+'">링크 ~'+dotDate(p.lnk.exp)+'</span>' : l.st==='none' ? '' : '<span class="badge err" title="「제출 링크 만들기」를 누르면 새 링크를 만듭니다">링크 '+(l.st==='lock'?'잠김':'기간 지남')+'</span>'; })()+'<span class="by">'+b+'바이트 · '+(b<=90?'단문':'장문')+'</span></div>'+
       '<pre>'+esc(t)+'</pre><div class="ft"><button type="button" class="ghost sm" data-smcopy="'+esc(p.id)+'">문자 내용 복사</button>'+(ph.length>=10?'<button type="button" class="ghost sm" data-smtel="'+esc(p.id)+'">전화번호 복사</button><a href="sms:'+ph+'?body='+encodeURIComponent(t)+'">휴대폰 문자 열기</a>':'')+
       '<span style="flex:1"></span>'+(lg?'<button type="button" class="ghost sm" data-smunreq="'+esc(p.id)+'">요청 기록 지우기</button>':'')+'<button type="button" class="ghost sm" data-smreq="'+esc(p.id)+'">'+(lg?(lg.date===today()?'오늘 요청함':'다시 요청함 처리'):'요청함 처리')+'</button></div></div>';
   }).join('') : '<p class="hint" style="margin:6px 0">왼쪽에서 문자를 보낼 강사를 고르면 강사별 문자 내용이 여기에 나옵니다.</p>';
@@ -1846,7 +1873,7 @@ function renderImgs(){
   IMG_KEYS.forEach(function(m){
     var el=document.querySelector('.drop[data-img="'+m.k+'"]'), ph=el.querySelector('.ph'), v=cur.imgs[m.k];
     if(urls[m.k]){ URL.revokeObjectURL(urls[m.k]); delete urls[m.k]; }
-    var old=el.querySelector('.x'); if(old) old.remove();
+    var old=el.querySelector('.x'); if(old) old.remove(); var oldv=el.querySelector('.vbig'); if(oldv) oldv.remove();
     el.classList.toggle('loaded', !!v);
     if(v && !v.data){ ph.innerHTML='<span class="hint">불러오는 중…</span>'; return; }
     if(v){
@@ -1856,16 +1883,28 @@ function renderImgs(){
       var x=document.createElement('button'); x.type='button'; x.className='del x'; x.textContent='×'; x.title='삭제';
       x.onclick=function(e){ e.stopPropagation(); delete cur.imgs[m.k]; clearFix(cur, m.k); save(); renderImgs(); refresh(); renderList(); };
       el.appendChild(x);
+      var vw=document.createElement('button'); vw.type='button'; vw.className='ghost sm vbig'; vw.textContent='크게 보기'; vw.onclick=function(e){ e.stopPropagation(); openStored(v, v.ext==='png'?'image/png':'image/jpeg'); }; el.appendChild(vw);
     } else { ph.innerHTML='<div class="plus">+</div>'; el.querySelector('.s').textContent=m.s; }
   });
+}
+// 저장된 파일(스캔본·이미지)을 새 창으로 연다. 공유 자료라 아직 안 받았으면 받아서 연다
+async function openStored(h, mime){
+  var w=null; try{ w=window.open('', '_blank'); }catch(e){}
+  try{
+    if(!h.data && h._fid){ var r=await gasCall('fget', { fid:h._fid }); h.data=b64ToU8(r.b64); dbPut(cur, true); }
+    if(!h.data) throw new Error('파일 내용이 없습니다');
+    var url=URL.createObjectURL(new Blob([h.data], {type:mime}));
+    if(w && !w.closed) w.location.href=url; else window.open(url, '_blank');
+  }catch(e){ if(w) w.close(); toast('파일을 열지 못했습니다: '+((e && e.message)||e)); }
 }
 function renderPdfs(){
   PDFS.forEach(function(p){
     var row=document.querySelector('[data-pdf="'+p.k+'"]'), v=cur.pdfs[p.k], st=row.querySelector('.pst'), clr=row.querySelector('.clr');
-    if(v&&v.length){ st.className='pst has'; st.innerHTML=v.map(function(f){ return esc(f.name)+(/\.pdf$/i.test(f.name)?'':' <b style="color:var(--warn)">(PDF 아님)</b>'); }).join(' · ')+(cur.fix&&cur.fix[p.k]?' · <span class="fixmark">보완 필요: '+esc(cur.fix[p.k].why||'사유 미입력')+'</span>':''); clr.hidden=false; }
+    if(v&&v.length){ st.className='pst has'; st.innerHTML=v.map(function(f, i){ return '<a href="#" class="popen" data-po="'+p.k+'" data-pi="'+i+'" title="눌러서 열어 보기">'+esc(f.name)+'</a>'+(/\.pdf$/i.test(f.name)?'':' <b style="color:var(--warn)">(PDF 아님)</b>'); }).join(' · ')+(cur.fix&&cur.fix[p.k]?' · <span class="fixmark">보완 필요: '+esc(cur.fix[p.k].why||'사유 미입력')+'</span>':''); clr.hidden=false; }
     else if(p.k==='tb' && cur.tbIn41 && (cur.pdfs.exam||[]).length){ st.className='pst has'; st.textContent='4-1 파일에 포함'; clr.hidden=true; }
     else { st.className='pst'; st.textContent = p.need?'미제출':'해당자만'; clr.hidden=true; }
   });
+  each('[data-po]', function(a){ a.onclick=function(e){ e.preventDefault(); e.stopPropagation(); var f=(cur.pdfs[a.dataset.po]||[])[+a.dataset.pi]; if(f) openStored(f, /\.pdf$/i.test(f.name)?'application/pdf':(f.type||'application/octet-stream')); }; });
   if($('tbIn41')){ $('tbIn41').checked=!!cur.tbIn41; $('btnSplit').hidden=!(cur.pdfs.exam||[]).length; }
 }
 function renderSettings(){
@@ -2110,9 +2149,25 @@ function select(id){ var p=people.filter(function(x){return x.id===id;})[0]; if(
 function renderAll(){ renderList(); renderForm(); refresh(); renderFix(); mTopText(); renderLsub(); }
 function renderLsub(){
   var el=$('lsubBar'), p=cur; if(!el) return;
-  el.hidden=!lsubWait(p); if(el.hidden) return;
+  renderLinkBar();
+  el.hidden=!(p && p.lsub && p.lsub.at); if(el.hidden) return;
+  el.classList.toggle('okd', !!p.lsub.ok);
+  if(p.lsub.ok){
+    el.innerHTML='<b>강사 제출 검토 완료</b><span>'+new Date(p.lsub.ok).toLocaleString('ko-KR')+(p.lsub.okBy?' · '+esc(p.lsub.okBy):'')+' · 강사 제출 '+new Date(p.lsub.done||p.lsub.at).toLocaleString('ko-KR')+'</span><span style="flex:1"></span><button type="button" class="ghost sm" id="lsubUndo">검토 취소</button>';
+    $('lsubUndo').onclick=function(){ delete cur.lsub.ok; delete cur.lsub.okBy; save(); renderAll(); toast('검토 완료를 취소했습니다 (다시 검토 대기)'); };
+    return;
+  }
   el.innerHTML='<b>강사 본인이 제출 링크로 '+(p.lsub.done?'제출했습니다':'입력하고 있습니다')+'</b><span>'+new Date(p.lsub.done||p.lsub.at).toLocaleString('ko-KR')+' · '+esc((p.lsub.items||[]).join(', '))+'</span><span style="flex:1"></span><button type="button" class="sm" id="lsubOk">검토 완료</button>';
-  $('lsubOk').onclick=function(){ cur.lsub.ok=Date.now(); save(); renderAll(); if(typeof syKick==='function' && syReady()){ sy.dirty[cur.id]=1; sySave(); syKick(); } toast('검토 완료로 표시했습니다'); };
+  $('lsubOk').onclick=function(){ cur.lsub.ok=Date.now(); cur.lsub.okBy=sy.me||''; save(); renderAll(); if(typeof syKick==='function' && syReady()){ sy.dirty[cur.id]=1; sySave(); syKick(); } toast('검토 완료로 표시했습니다'); };
+}
+function renderLinkBar(){
+  var el=$('linkBar'), p=cur; if(!el) return;
+  el.hidden=!(sy.on && p && String(p.name||'').trim()); if(el.hidden) return;
+  var ls=linkState(p), on=ls.st==='ok';
+  el.innerHTML='<b>강사 제출 링크</b><span class="lk '+ls.st+'">'+esc(ls.t)+'</span><span style="flex:1"></span>'+
+    (on ? '<button type="button" class="ghost sm" data-lk="copy">링크 복사</button><button type="button" class="ghost sm" data-lk="extend">14일 연장</button><button type="button" class="ghost sm" data-lk="renew">새 주소로 바꾸기</button><button type="button" class="ghost sm" data-lk="off">링크 막기</button>'
+        : ls.st==='none' ? '<button type="button" class="ghost sm" data-lk="make">링크 만들기</button>' : '<button type="button" class="ghost sm" data-lk="renew">새 링크 만들기</button>'+'<button type="button" class="ghost sm" data-lk="off">기록 지우기</button>');
+  each('[data-lk]', function(b){ b.onclick=function(){ linkAct(b.dataset.lk); }; }, el);
 }
 // 모바일 위쪽 막대: 지금 화면 이름 · 고른 강사
 function mTopText(){ if(!$('mPage')) return; var mm=PAGE_META[page]||['','','']; $('mPage').textContent=mm[1]; $('mWho').textContent = SHARED_PAGES[page] ? mm[0] : ((cur && cur.name.trim()) ? cur.name.trim()+' · '+cur.role : '강사를 고르세요'); }
@@ -2984,6 +3039,7 @@ function syReplace(p, old){
   var i = old ? people.indexOf(old) : -1; if(i >= 0) people[i] = p; else people.push(p);
   dbPut(p, true); if(cur && cur.id === p.id){ cur = p; return true; } return false;
 }
+var syNewSub = [];
 async function syPull(){
   var r = await gasCall('sync', { since: sy.rev }), curChanged = false, listChanged = false, first = !sy.started;
   r.people.forEach(function(x){
@@ -2995,6 +3051,7 @@ async function syPull(){
     if(old && old._rev === x.rev) return;
     if(old && dirty && !first){ if(!(dirty.del)) sy.conf[x.id] = x; return; }
     if(old && dirty && first && !old._rev) return;   // 처음 맞출 때: 이 브라우저 것과 공유 것이 같은 강사 → 아래에서 올리지 않고 비교
+    if(x.by === '강사 본인' && x.data && x.data.lsub && !x.data.lsub.ok && (!old || !old.lsub || old.lsub.at !== x.data.lsub.at) && !first) syNewSub.push(String(x.data.name||'').trim());
     if(syReplace(syFromRemote(x, old), old)) curChanged = true;
     listChanged = true; delete sy.dirty[x.id];
   });
@@ -3011,6 +3068,7 @@ async function syPull(){
     sy.started = true;
   }
   sy.rev = r.rev; sySave();
+  if(syNewSub.length){ var nm=syNewSub.filter(function(v,i,a){ return v && a.indexOf(v)===i; }); syNewSub=[]; if(nm.length) toast('강사가 제출 링크로 서류를 올렸습니다: '+nm.join(', ')+' (강사 목록 → 강사 제출)'); }
   if(r.notes && nApply(r.notes) && !(listChanged || curChanged)) nRefresh();
   if(listChanged || curChanged){ renderList(); if(curChanged){ renderAll(); syLoadCur(cur); } if(page === 'status') renderStatus(); if(page === 'roster') renderRoster(); }
   return r;

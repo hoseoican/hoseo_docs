@@ -38,11 +38,7 @@
 - 발송·요청 기록 공유(강사 자료 공유를 켠 브라우저끼리), 발송 기록 학기별 구분, 재요청 횟수·경과일, 채용신체검사서 기한 알림, 학기 반영(운영현황에 맞추기), 만든 서류를 공유 폴더 「생성서류」에 저장.
 - 강사 직접 제출(apply.html): 직원이 만든 개인 링크 + 본인 확인(생년월일 또는 연락처 뒤 4자리)으로 강사가 본인 자료만 입력·업로드. 바로 서명 가능.
 
-## 운영 관리(접수·배치) 통합 — `manage/`
-「초등방과후 프로그램 운영 관리」(학교·기관 접수, 강사 모집·배치, 운영 목록, 통계)를 이 저장소로 옮긴 화면이다.
-- 화면: `manage/index.html` 한 파일. 주소 규칙은 예전 웹앱과 같다 — 운영 `manage/?a=운영자키`, 강사 `manage/`, 보조강사 `manage/?r=asst`, 기관 담당자 `manage/?join=1`, 기관 전용 `manage/?s=토큰`, 타대학 `?u=`, 통계 `?st=`, 사업 `&b=vac`.
-- 데이터·서버: 운영 관리 앱스 스크립트(구글 시트)를 그대로 쓴다. 화면은 `google.script.run` 대신 웹앱 주소로 `{fn, args}`를 보낸다(`Code.gs`의 `doPost`, 허용 목록 `RPC_FNS_`). 웹앱 주소는 `manage/config.js`의 `OPS_API`.
-- 원본: `manage/_src/` — `src2.html`(화면 원본) → `to_gas.py` → `Lib.html`·`Styles.html`, `App.html`(껍데기) → `build_pages.py <gas 폴더>` → `manage/index.html`. `Code.gs`는 저장소에 올리지 않는다.
-- 강사서류 화면 왼쪽 메뉴 「⑥ 운영 관리」에서 연다. 「접수·배치 관리」는 운영자 링크를 처음 한 번 묻고 이 브라우저에만 기억한다(Shift+클릭으로 다시 입력).
-- 예전 웹앱 주소(`script.google.com/…/exec`)도 그대로 동작한다. 학교·강사에게 나가는 링크를 새 주소로 바꾸려면 운영 화면 「1 기준정보 → 웹앱 주소」에 `https://hoseoican.github.io/hoseo_docs/manage/`를 넣는다.
-- 운영 통계 「자료 올리기 → 강사서류 운영현황 시트 불러오기」: 강사서류 화면 「운영현황」에 등록한 구글 시트 목록(강사서류 연동 `ping`의 `ops`)을 받아 운영 관리 서버(`adminSheetRead`)로 읽는다. 같은 브라우저의 강사서류 연동 설정(IndexedDB `anchor-lecturer-docs` › `kv` › `gas`)을 쓴다. 시트 등록·삭제는 강사서류 화면 한 곳에서만 한다.
+## 운영 관리(접수·배치) — 저장소 hoseoican/hoseo_ops
+「초등방과후 프로그램 운영 관리」(학교·기관 접수, 강사 모집·배치, 운영 목록, 통계)는 별도 저장소 [hoseo_ops](https://github.com/hoseoican/hoseo_ops)에 있다. 화면 https://hoseoican.github.io/hoseo_ops/ .
+- 이 화면 왼쪽 메뉴 「⑥ 운영 관리」에서 연다. 「접수·배치 관리」는 운영자 링크를 처음 한 번 묻고 이 브라우저에만 기억한다(Shift+클릭으로 다시 입력).
+- 같은 주소(hoseoican.github.io)라 운영 관리 화면이 이 화면의 연동 설정을 읽어, 「운영현황」에 등록한 구글 시트를 운영 통계에서 같이 쓴다. 시트 등록·삭제는 이 화면에서만 한다.

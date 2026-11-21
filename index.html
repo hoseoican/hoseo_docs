@@ -569,9 +569,9 @@
     <label data-page="certlog"><input type="radio" name="page" value="certlog">발급 내역<i class="st" data-sec="certlog"></i></label>
     <div class="navg"><span>⑥</span>운영 관리</div>
     <a class="navx" data-mg="admin" href="#" title="학교·기관 접수, 강사 모집·배치, 운영 목록 (초등방과후 프로그램 운영 관리)">접수·배치 관리<i>↗</i></a>
-    <a class="navx" data-mg="join" href="manage/?join=1" target="_blank" rel="noopener" title="학교·기관 담당자가 들어오는 화면">기관 담당자 페이지<i>↗</i></a>
-    <a class="navx" data-mg="teacher" href="manage/" target="_blank" rel="noopener" title="강사가 수업을 신청하는 화면">강사 수업 신청<i>↗</i></a>
-    <a class="navx" data-mg="asst" href="manage/?r=asst" target="_blank" rel="noopener" title="보조강사가 수업을 신청하는 화면">보조강사 수업 신청<i>↗</i></a>
+    <a class="navx" data-mg="join" href="https://hoseoican.github.io/hoseo_ops/?join=1" target="_blank" rel="noopener" title="학교·기관 담당자가 들어오는 화면">기관 담당자 페이지<i>↗</i></a>
+    <a class="navx" data-mg="teacher" href="https://hoseoican.github.io/hoseo_ops/" target="_blank" rel="noopener" title="강사가 수업을 신청하는 화면">강사 수업 신청<i>↗</i></a>
+    <a class="navx" data-mg="asst" href="https://hoseoican.github.io/hoseo_ops/?r=asst" target="_blank" rel="noopener" title="보조강사가 수업을 신청하는 화면">보조강사 수업 신청<i>↗</i></a>
   </nav>
   <div class="sidefoot"><button type="button" class="bk" id="btnBackup">데이터 백업·복원<small id="bkState">백업한 적 없음</small></button><span id="storeHint"></span><span class="ver" id="verSide"></span></div>
 </aside>
@@ -1051,7 +1051,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-14';
+var APP_VERSION = '2026.11.21-15';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -2172,7 +2172,7 @@ function openManage(reset){
     if(!m){ toast('운영자 링크가 아닙니다. 주소에 ?a= 가 들어 있는 링크를 넣어 주세요'); return; }
     k=m[1]; try{ localStorage.setItem('hsMgKey', k); }catch(e){}
   }
-  window.open('manage/?a='+encodeURIComponent(k), '_blank');
+  window.open('https://hoseoican.github.io/hoseo_ops/?a='+encodeURIComponent(k), '_blank');
 }
 function renderLsub(){
   var el=$('lsubBar'), p=cur; if(!el) return;

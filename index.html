@@ -558,6 +558,7 @@
   </section>
 
   <!-- ⓪ 기준정보: 운영현황 -->
+  <div class="sheets" id="perBar" hidden style="max-width:1180px"></div>
   <section data-sec="ops" hidden>
     <div class="wide-drop" id="opsDrop"><b>확정 운영현황 불러오기</b> <span class="hint tip" tabindex="0"><i class="ti">i</i><span class="tipbody">확정된 운영현황 엑셀(.xlsx)을 끌어다 놓거나 눌러서 고르세요. 여러 파일(1학기·하계·2학기·동계·학교밖)을 한꺼번에 넣어도 됩니다.<br>시트 이름에 <b>「호서대」</b>가 들어간 시트가 있으면 그 시트만, 없으면 머리글이 맞는 모든 시트를 읽습니다. 「새로나 보조」 시트는 뺍니다.<br>읽는 머리글: <b>학교명(기관명)·시기·프로그램명·분야·학년·시작일·종료일·강사명(+연락처·이메일)·보조강사(+연락처)</b>, 있으면 <b>담당자·담당자 연락처·담당자 이메일</b>.<br>새로 불러오면 이전 운영현황을 바꿔 씁니다. 운영현황은 이 브라우저에만 저장됩니다.</span></span>
       <div class="s" id="opsText"></div>
@@ -977,7 +978,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-4';
+var APP_VERSION = '2026.11.21-5';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1496,7 +1497,7 @@ function registerUnreg(o){ var t=blank(); applyOpsPerson(t, o, false); var k='u:
 function rolesOf(x){ var o=x.ops || (x.term && x.term.o) || (typeof opsLoaded==='function' && opsLoaded() ? opsPersonOf(x.name) : null); return o ? o.roles : [x.p.role==='주강사' ? '주강사' : '보조강사']; }
 function rosterMatch(x, f, q){
   if(q){ var qq=q.replace(/\s/g,''); if(x.name.replace(/\s/g,'').indexOf(qq)<0 && !x.schools.some(function(s){ return s.replace(/\s/g,'').indexOf(qq)>=0; })) return false; }
-  return f==='all' || (f==='term' && x.term && !x.term.none) || (f==='exam' && x.exp) || (f==='late' && smsLog[x.p.id] && reqDays(smsLog[x.p.id])>=7 && (x.unreg || !x.ok || x.exp)) || (f==='unreg' && x.unreg) || (f==='miss' && !x.ok && !x.unreg) || (f==='ok' && x.ok) || (f==='unsent' && x.send.st!=='sent') || (f==='main' && rolesOf(x).indexOf('주강사')>=0) || (f==='sub' && rolesOf(x).indexOf('보조강사')>=0);
+  return f==='all' || (f==='cur' && (x.unreg || inTerm(x.name))) || (f==='term' && x.term && !x.term.none) || (f==='exam' && x.exp) || (f==='late' && smsLog[x.p.id] && reqDays(smsLog[x.p.id])>=7 && (x.unreg || !x.ok || x.exp)) || (f==='unreg' && x.unreg) || (f==='miss' && !x.ok && !x.unreg) || (f==='ok' && x.ok) || (f==='unsent' && x.send.st!=='sent') || (f==='main' && rolesOf(x).indexOf('주강사')>=0) || (f==='sub' && rolesOf(x).indexOf('보조강사')>=0);
 }
 function rosterSort(list, how){
   return list.sort(function(a,b){
@@ -1529,7 +1530,7 @@ var RS_COLS={ name:function(x){ return x.name||'힣'; }, school:function(x){ ret
   send:function(x){ return ({sent:3, part:2, wait:1, none:0})[x.send.st]; }, upd:function(x){ return x.p.updated||0; } };
 function rsColSort(list){ var f=RS_COLS[rsCol.k]; return list.sort(function(a,b){ var va=f(a), vb=f(b), c=typeof va==='string' ? natSort(va, vb) : va-vb; return (c*rsCol.dir) || natSort(a.name||'힣', b.name||'힣'); }); }
 function rsTh(k, t, w){ var on=rsCol.k===k; return '<th class="sortable'+(on?' on':'')+'" data-rscol="'+k+'"'+(w?' style="width:'+w+'px"':'')+' title="눌러서 정렬">'+t+'<i>'+(on?(rsCol.dir>0?'▲':'▼'):'')+'</i></th>'; }
-var RS_FILTERS=[['all','전체'],['miss','미구비'],['ok','구비 완료'],['unreg','미등록'],['|'],['term','학기 반영 필요'],['exam','검사서 기한'],['late','요청 7일 지남'],['|'],['unsent','미발송'],['|'],['main','주강사'],['sub','보조강사']];
+var RS_FILTERS=[['all','전체'],['cur','적용 학기 강사'],['miss','미구비'],['ok','구비 완료'],['unreg','미등록'],['|'],['term','학기 반영 필요'],['exam','검사서 기한'],['late','요청 7일 지남'],['|'],['unsent','미발송'],['|'],['main','주강사'],['sub','보조강사']];
 function rsSelected(){ return people.filter(function(p){ return rsSel[p.id]; }); }
 function rsSelUnreg(){ return unregList().filter(function(x){ return rsSel[x.p.id]; }); }
 function rsSelInfo(){
@@ -1543,8 +1544,8 @@ function rsSelInfo(){
 }
 function renderRoster(){
   var q=$('rsQ').value||'', un=unregList(), all=people.map(rosterInfo).concat(un);
-  var cnt={all:all.length, miss:0, ok:0, unreg:un.length, unsent:0, main:0, sub:0, term:0, exam:0, late:0};
-  all.forEach(function(x){ ['term','exam','late'].forEach(function(f){ if(rosterMatch(x, f, '')) cnt[f]++; }); if(!x.unreg) cnt[x.ok?'ok':'miss']++; if(x.send.st!=='sent') cnt.unsent++; var rl=rolesOf(x); if(rl.indexOf('주강사')>=0) cnt.main++; if(rl.indexOf('보조강사')>=0) cnt.sub++; });
+  var cnt={all:all.length, miss:0, ok:0, unreg:un.length, unsent:0, main:0, sub:0, term:0, exam:0, late:0, cur:0};
+  all.forEach(function(x){ ['term','exam','late','cur'].forEach(function(f){ if(rosterMatch(x, f, '')) cnt[f]++; }); if(!x.unreg) cnt[x.ok?'ok':'miss']++; if(x.send.st!=='sent') cnt.unsent++; var rl=rolesOf(x); if(rl.indexOf('주강사')>=0) cnt.main++; if(rl.indexOf('보조강사')>=0) cnt.sub++; });
   $('rsBasis').textContent='등록 '+people.length+'명 · 구비 완료 '+cnt.ok+'명 · 미구비 '+cnt.miss+'명'+(un.length?' · 운영현황에만 있는 미등록 '+un.length+'명':'');
   $('rsFilter').innerHTML=RS_FILTERS.map(function(f){ return f[0]==='|' ? '<span class="sep"></span>' : '<button type="button" data-rf="'+f[0]+'" class="'+(rsF===f[0]?'on':'')+'">'+f[1]+'<b>'+cnt[f[0]]+'</b></button>'; }).join('');
   each('[data-rf]', function(b){ b.onclick=function(){ rsF=b.dataset.rf; renderRoster(); }; }, $('rsFilter'));
@@ -1617,7 +1618,7 @@ function reqDays(lg){ return lg ? Math.floor((new Date(today()+'T00:00:00')-new 
 function reqText(lg){ var d=reqDays(lg); return dotDate(lg.date)+' 요청'+((lg.n||1)>1?' '+lg.n+'회':'')+(d>0?' · '+d+'일 지남':''); }
 function smsDueDefault(){ return dotDate(Date.now()+7*86400000); }
 function smsNeeds(x){ return x.unreg || !!x.exp || x.miss.some(function(k){ return k!=='phone'; }) || x.fix.length>0; }
-function smsTargets(){ return people.map(rosterInfo).filter(function(x){ return x.name && smsNeeds(x); }).concat(unregList()); }
+function smsTargets(){ return people.map(rosterInfo).filter(function(x){ return x.name && smsNeeds(x) && inTerm(x.name); }).concat(unregList()); }
 function phoneOf(p){ return (p.phone||'').replace(/\D/g,''); }
 function smsText(x){
   var docs=x.miss.filter(function(k){ return k!=='phone'; }).map(missText), fixes=x.fix.map(function(f){ return fixName(f.k)+': '+f.why; }).concat(x.exp?[x.exp.t]:[]);
@@ -1820,6 +1821,14 @@ function renderNames(){
 function openNames(){ renderNames(); $('namesDlg').classList.add('on'); }
 
 /* ---------- 쪽 이동 ---------- */
+// 현황·강사 목록·발송·요청 화면 위의 적용 학기 선택(운영현황의 「적용 학기」와 같은 설정)
+var PER_PAGES={ status:1, roster:1, mail:1, sms:1 };
+function renderPerBar(){
+  var el=$('perBar'), fl=(typeof opsHasRows==='function' && opsHasRows()) ? opsFileList() : [];
+  el.hidden = !PER_PAGES[page] || fl.length<2; if(el.hidden) return;
+  el.innerHTML='<b>적용 학기</b>'+fl.map(function(f){ var o=!ops.per||ops.per.indexOf(f)>=0; return '<label class="'+(o?'on':'')+'"><input type="checkbox" data-pb="'+esc(f)+'"'+(o?' checked':'')+'>'+esc(f)+'</label>'; }).join('')+'<span class="hint">켠 학기의 강사·학교만 봅니다</span>';
+  each('[data-pb]', function(cb){ cb.onchange=function(){ var n=cb.dataset.pb, per=(ops.per||fl).slice(), k=per.indexOf(n); if(cb.checked && k<0) per.push(n); if(!cb.checked && k>=0) per.splice(k,1); if(!per.length){ cb.checked=true; toast('학기를 하나 이상 켜 주세요'); return; } ops.per = per.length===fl.length ? null : per; opsChanged(); go(page, true); refresh(); }; }, el);
+}
 function go(p, fromHistory){
   // 브라우저 뒤로가기: 메뉴를 옮길 때마다 기록해 두고, 뒤로가기 하면 이전 메뉴로
   if(!fromHistory && page !== p){ try{ history.pushState({ page: p }, '', '#'+p); }catch(e){} }
@@ -1832,6 +1841,7 @@ function go(p, fromHistory){
   var i = PAGES.indexOf(p), shared = !!SHARED_PAGES[p];
   $('btnPrev').disabled = i===0; $('btnNext').hidden = i===PAGES.length-1;
   $('msgRow').hidden = shared; $('phWho').hidden = shared; $('btnMake').hidden = shared; $('btnDrive').hidden = shared; $('btnSettings').hidden = shared;
+  renderPerBar();
   if(p==='ops') renderOps();
   if(p==='status') renderStatus();
   if(p==='roster') renderRoster();
@@ -2202,6 +2212,12 @@ function pairIdx(){
   var m={}; (ops.rows||[]).forEach(function(r){ if(r.src==='직접 추가' || (ops.on && r.sheet && ops.on.indexOf(r.sheet)<0)) return; var f=rowFile(r); if(!f) return;
     (r.people||[]).forEach(function(q){ var k=sentKey(r.school, q.name), o=(m[k]=m[k]||{}), x=(o[f]=o[f]||{s:'', e:''}); if(r.start && (!x.s || r.start<x.s)) x.s=r.start; if(r.end && r.end>x.e) x.e=r.end; }); });
   pairIdxCache={ rows:ops.rows, n:(ops.rows||[]).length, on:ops.on, m:m }; return m;
+}
+// 지금 고른 학기의 강사인지: 운영현황의 다른 학기에만 있으면 아님. 운영현황에 아예 없는(직접 등록한) 강사는 포함
+function inTerm(name){
+  if(typeof opsHasRows!=='function' || !opsHasRows()) return true;
+  var n=String(name||'').replace(/\s/g,''), m=pairIdx(), c=pairIdxCache; if(!c.names){ c.names={}; Object.keys(m).forEach(function(k){ c.names[k.split('|')[1]]=1; }); }
+  return !c.names[n] || !!opsPersonOf(n);
 }
 function pairFiles(school, name){ var o=pairIdx()[sentKey(school, name)]; return o ? Object.keys(o).filter(function(f){ return !ops.per || ops.per.indexOf(f)>=0; }) : []; }
 // 발송 기록은 학기별로 본다. 예전 기록(학기 없음)은 발송한 날에 아직 끝나지 않은 학기 중 가장 먼저 시작하는 학기의 것으로 본다

@@ -399,6 +399,7 @@
   .mtag.fx { background: #FFF1DB; color: #9A5B00; }
   .mtag.un { background: #F1EBEA; color: var(--mute); }
   .mtag.tm { background: #E4ECF7; color: #2C5282; }
+  th.sortable { cursor: pointer; user-select: none; } th.sortable:hover { text-decoration: underline; } th.sortable i { font-style: normal; font-size: 10px; margin-left: 4px; color: var(--accent, #8A1538); }
   .stt tr.unreg td.nm b { color: var(--mute); }
   table.fixt td { vertical-align: middle; }
   table.fixt input[type=text] { width: 100%; min-width: 0; }
@@ -815,7 +816,7 @@
         </div>
         <div class="row" style="margin:0 0 8px;gap:6px;flex-wrap:wrap;align-items:center">
           <button type="button" class="ghost sm" id="smAll">보이는 강사 전체 선택</button><button type="button" class="ghost sm" id="smNone">전체 해제</button>
-          <select id="smReq" title="요청 기록"><option value="">요청 기록 전체</option><option value="none">아직 요청 안 한 강사</option><option value="d3">요청 후 3일 지난 강사</option><option value="d7">요청 후 7일 지난 강사</option><option value="d14">요청 후 14일 지난 강사</option></select>
+          <select id="smSort" title="정렬"><option value="name">이름순</option><option value="school">배치 학교순</option><option value="miss">부족 서류 많은 순</option><option value="req">요청 오래된 순</option><option value="noreq">요청 안 한 강사 먼저</option></select><select id="smReq" title="요청 기록"><option value="">요청 기록 전체</option><option value="none">아직 요청 안 한 강사</option><option value="d3">요청 후 3일 지난 강사</option><option value="d7">요청 후 7일 지난 강사</option><option value="d14">요청 후 14일 지난 강사</option></select>
           <span class="hint" id="smCount" style="margin-left:auto"></span>
         </div>
         <ul class="smslist" id="smList"></ul>
@@ -969,7 +970,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-2';
+var APP_VERSION = '2026.11.21-3';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1515,7 +1516,11 @@ function renderFix(){
   each('[data-fxw]', function(inp){ inp.oninput=function(){ var k=inp.dataset.fxw; if(cur.fix&&cur.fix[k]){ cur.fix[k].why=inp.value.trim(); changed(); } }; }, $('fixTable'));
 }
 /* ---------- 강사 목록 화면 ---------- */
-var rsF='all', rsSel={}, rsLast=[];
+var rsF='all', rsSel={}, rsLast=[], rsCol={k:'', dir:1};
+var RS_COLS={ name:function(x){ return x.name||'힣'; }, school:function(x){ return x.schools.join(', ')||'힣'; }, miss:function(x){ return x.ok ? -1 : x.unreg ? 99 : x.miss.length+x.fix.length+(x.exp?0.5:0); },
+  send:function(x){ return ({sent:3, part:2, wait:1, none:0})[x.send.st]; }, upd:function(x){ return x.p.updated||0; } };
+function rsColSort(list){ var f=RS_COLS[rsCol.k]; return list.sort(function(a,b){ var va=f(a), vb=f(b), c=typeof va==='string' ? natSort(va, vb) : va-vb; return (c*rsCol.dir) || natSort(a.name||'힣', b.name||'힣'); }); }
+function rsTh(k, t, w){ var on=rsCol.k===k; return '<th class="sortable'+(on?' on':'')+'" data-rscol="'+k+'"'+(w?' style="width:'+w+'px"':'')+' title="눌러서 정렬">'+t+'<i>'+(on?(rsCol.dir>0?'▲':'▼'):'')+'</i></th>'; }
 var RS_FILTERS=[['all','전체'],['miss','미구비'],['ok','구비 완료'],['unreg','미등록'],['|'],['term','학기 반영 필요'],['exam','검사서 기한'],['late','요청 7일 지남'],['|'],['unsent','미발송'],['|'],['main','주강사'],['sub','보조강사']];
 function rsSelected(){ return people.filter(function(p){ return rsSel[p.id]; }); }
 function rsSelUnreg(){ return unregList().filter(function(x){ return rsSel[x.p.id]; }); }
@@ -1536,9 +1541,9 @@ function renderRoster(){
   $('rsFilter').innerHTML=RS_FILTERS.map(function(f){ return f[0]==='|' ? '<span class="sep"></span>' : '<button type="button" data-rf="'+f[0]+'" class="'+(rsF===f[0]?'on':'')+'">'+f[1]+'<b>'+cnt[f[0]]+'</b></button>'; }).join('');
   each('[data-rf]', function(b){ b.onclick=function(){ rsF=b.dataset.rf; renderRoster(); }; }, $('rsFilter'));
   Object.keys(rsSel).forEach(function(id){ if(!all.some(function(x){ return x.p.id===id; })) delete rsSel[id]; });
-  var list=rosterSort(all.filter(function(x){ return rosterMatch(x, rsF, q); }), $('rsSort').value); rsLast=list;
+  var list=all.filter(function(x){ return rosterMatch(x, rsF, q); }); list=rsCol.k ? rsColSort(list) : rosterSort(list, $('rsSort').value); rsLast=list;
   var allOn=list.length && list.every(function(x){ return rsSel[x.p.id]; });
-  $('rsTable').innerHTML='<tr><th class="ck"><input type="checkbox" id="rsHead" title="보이는 강사 전체 선택"'+(allOn?' checked':'')+'></th><th style="width:130px">강사</th><th style="width:200px">배치 학교</th><th>부족 서류</th><th style="width:120px">발송</th><th style="width:100px">최근 수정</th><th style="width:60px"></th></tr>'+(list.length ? list.map(function(x){
+  $('rsTable').innerHTML='<tr><th class="ck"><input type="checkbox" id="rsHead" title="보이는 강사 전체 선택"'+(allOn?' checked':'')+'></th>'+rsTh('name','강사',130)+rsTh('school','배치 학교',200)+rsTh('miss','부족 서류',0)+rsTh('send','발송',120)+rsTh('upd','최근 수정',100)+'<th style="width:60px"></th></tr>'+(list.length ? list.map(function(x){
     var p=x.p, lg=smsLog[p.id];
     if(x.unreg) return '<tr class="unreg'+(rsSel[p.id]?' sel':'')+'"><td class="ck"><input type="checkbox" data-rs="'+esc(p.id)+'"'+(rsSel[p.id]?' checked':'')+'></td>'+
       '<td class="nm"><b>'+esc(x.name)+'</b><small>'+p.role+'</small></td><td>'+esc(x.schools.join(', '))+'</td>'+
@@ -1555,6 +1560,7 @@ function renderRoster(){
   each('[data-rs]', function(cb){ cb.onchange=function(){ if(cb.checked) rsSel[cb.dataset.rs]=1; else delete rsSel[cb.dataset.rs]; cb.closest('tr').classList.toggle('sel', cb.checked); $('rsHead').checked=rsLast.length && rsLast.every(function(x){ return rsSel[x.p.id]; }); rsSelInfo(); }; }, $('rsTable'));
   $('rsHead').onchange=function(){ var on=$('rsHead').checked; rsLast.forEach(function(x){ if(on) rsSel[x.p.id]=1; else delete rsSel[x.p.id]; }); renderRoster(); };
   each('[data-rsopen]', function(b){ b.onclick=function(){ select(b.dataset.rsopen); go('out'); }; }, $('rsTable'));
+  each('[data-rscol]', function(th){ th.onclick=function(){ var k=th.dataset.rscol; if(rsCol.k===k) rsCol.dir=-rsCol.dir; else rsCol={ k:k, dir:(k==='miss'||k==='upd') ? -1 : 1 }; renderRoster(); }; }, $('rsTable'));
   each('[data-rsreg]', function(b){ b.onclick=function(){ var x=unregList().filter(function(u){ return u.name===b.dataset.rsreg; })[0]; if(!x) return; var t=registerUnreg(x.ops); delete rsSel[x.p.id]; renderAll(); select(t.id); go('info'); toast(x.name+' 강사를 등록했습니다. 인적사항과 제출서류를 넣어 주세요'); }; }, $('rsTable'));
   rsSelInfo();
 }
@@ -1636,7 +1642,8 @@ function renderSms(){
   $('smSchool').innerHTML='<option value="">배치 학교 전체</option>'+Object.keys(scN).sort(natSort).map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+' ('+scN[s]+')</option>'; }).join('');
   $('smItem').innerHTML='<option value="">부족 서류 전체</option>'+(itN.unreg?'<option value="unreg">미등록 강사 · 서류 전체 ('+itN.unreg+')</option>':'')+MISS_ORDER.filter(function(k){ return itN[k]; }).map(function(k){ return '<option value="'+k+'">'+esc(missText(k))+' 미제출 ('+itN[k]+')</option>'; }).join('')+FIX_DOCS.filter(function(d){ return itN['fix:'+d[0]]; }).map(function(d){ return '<option value="fix:'+d[0]+'">'+esc(d[1])+' 보완 ('+itN['fix:'+d[0]]+')</option>'; }).join('')+(itN.exp?'<option value="exp">채용신체검사서 기한 ('+itN.exp+')</option>':'');
   if(scN[scV]) $('smSchool').value=scV; if(itN[itV]) $('smItem').value=itV;
-  var list=all.filter(smsMatch).sort(function(a,b){ return natSort(a.name,b.name); });
+  var how=$('smSort').value, rk=function(x){ var lg=smsLog[x.p.id]; return how==='school' ? 0 : how==='miss' ? -(x.unreg ? 99 : x.miss.length+x.fix.length) : how==='req' ? (lg ? lg.at||0 : 9e15) : how==='noreq' ? (lg ? 1 : 0) : 0; };
+  var list=all.filter(smsMatch).sort(function(a,b){ return (how==='school' ? natSort(a.schools.join(',')||'힣', b.schools.join(',')||'힣') : rk(a)-rk(b)) || natSort(a.name,b.name); });
   var nUn=all.filter(function(x){ return x.unreg; }).length; $('smBasis').textContent='미제출·보완 서류가 있는 강사 '+(all.length-nUn)+'명'+(nUn?' · 미등록 '+nUn+'명':'');
   $('smCount').textContent=list.length+'명 표시';
   $('smList').innerHTML = list.length ? list.map(function(x){
@@ -1682,7 +1689,7 @@ function smsCsv(){
   saveBlob(new Blob([csv], {type:'text/csv;charset=utf-8'}), '서류보완요청_'+pk.length+'명_'+today()+'.csv');
 }
 function bindSms(){
-  $('smSchool').onchange=renderSms; $('smItem').onchange=renderSms; $('smReq').onchange=renderSms;
+  $('smSchool').onchange=renderSms; $('smItem').onchange=renderSms; $('smReq').onchange=renderSms; $('smSort').onchange=renderSms;
   $('smQ').addEventListener('input', renderSms);
   $('smAll').onclick=function(){ smsTargets().filter(smsMatch).forEach(function(x){ if(phoneOf(x.p).length>=10) smsPick[x.p.id]=1; }); renderSms(); };
   $('smNone').onclick=function(){ smsPick={}; renderSms(); };
@@ -1696,7 +1703,7 @@ function bindSms(){
   $('smCsv').onclick=smsCsv;
   $('smMark').onclick=function(){ var pk=smsPicked(); pk.forEach(function(x){ smsLogSet(x.p.id, x); }); kvPut('smsLog', smsLog); renderSms(); toast(pk.length+'명을 요청함으로 기록했습니다 ('+dotDate(today())+')'); };
   // 강사 목록 화면
-  $('rsQ').addEventListener('input', renderRoster); $('rsSort').onchange=renderRoster;
+  $('rsQ').addEventListener('input', renderRoster); $('rsSort').onchange=function(){ rsCol={k:'', dir:1}; renderRoster(); };
   $('rsAll').onclick=function(){ rsLast.forEach(function(x){ rsSel[x.p.id]=1; }); renderRoster(); };
   $('rsNone').onclick=function(){ rsSel={}; renderRoster(); };
   $('rsZip').onclick=rosterZip; $('rsDel').onclick=rosterDelete;

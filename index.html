@@ -405,6 +405,7 @@
   .mtag.fx { background: #FFF1DB; color: #9A5B00; }
   .mtag.un { background: #F1EBEA; color: var(--mute); }
   .mtag.tm { background: #E4ECF7; color: #2C5282; }
+  b.dual { font-weight: 700; color: #5B3B8C; }
   th.sortable { cursor: pointer; user-select: none; } th.sortable:hover { text-decoration: underline; } th.sortable i { font-style: normal; font-size: 10px; margin-left: 4px; color: var(--accent, #8A1538); }
   .stt tr.unreg td.nm b { color: var(--mute); }
   table.fixt td { vertical-align: middle; }
@@ -477,7 +478,7 @@
     <div class="sidecap">강사 목록 <button type="button" id="btnNew">강사 등록</button></div>
     <div class="sidetools">
       <input type="text" id="pq" placeholder="이름·학교 찾기" autocomplete="off">
-      <select id="pf" title="걸러 보기"><option value="all">전체</option><option value="miss">미구비</option><option value="ok">구비 완료</option><option value="unsent">미발송</option><option value="main">주강사</option><option value="sub">보조강사</option></select>
+      <select id="pf" title="걸러 보기"><option value="all">전체</option><option value="miss">미구비</option><option value="ok">구비 완료</option><option value="unsent">미발송</option><option value="main">주강사</option><option value="sub">보조강사</option><option value="dual">겸임</option></select>
       <select id="ps" title="정렬"><option value="recent">최근 수정순</option><option value="name">이름순</option><option value="miss">미구비 먼저</option></select>
     </div>
     <div class="sidecnt" id="pcnt"></div>
@@ -978,7 +979,7 @@
 <script src="certtpl.js"></script>
 <script>
 // 버전: 고칠 때마다 날짜(와 같은 날 여러 번이면 -2, -3)를 바꿔 주세요
-var APP_VERSION = '2026.11.21-7';
+var APP_VERSION = '2026.11.21-8';
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -1495,9 +1496,12 @@ function unregList(){
 }
 function registerUnreg(o){ var t=blank(); applyOpsPerson(t, o, false); var k='u:'+o.name; if(smsLog[k]){ smsLog[t.id]=smsLog[k]; delete smsLog[k]; kvPut('smsLog', smsLog); nMark('m:'+k); nMark('m:'+t.id); } return t; }
 function rolesOf(x){ var o=x.ops || (x.term && x.term.o) || (typeof opsLoaded==='function' && opsLoaded() ? opsPersonOf(x.name) : null); return o ? o.roles : [x.p.role==='주강사' ? '주강사' : '보조강사']; }
+// 강사 한 명의 구분: 주강사만 · 보조강사만 · 겸임(운영현황에서 주·보조를 모두 맡음)
+function roleKind(x){ var r=rolesOf(x); return r.length>1 ? 'dual' : r[0]==='주강사' ? 'main' : 'sub'; }
+function roleLabel(x){ return x.p.role+(roleKind(x)==='dual' ? ' · <b class="dual" title="운영현황에서 주강사와 보조강사를 모두 맡았습니다">겸임</b>' : ''); }
 function rosterMatch(x, f, q){
   if(q){ var qq=q.replace(/\s/g,''); if(x.name.replace(/\s/g,'').indexOf(qq)<0 && !x.schools.some(function(s){ return s.replace(/\s/g,'').indexOf(qq)>=0; })) return false; }
-  return f==='all' || (f==='cur' && (x.unreg || inTerm(x.name))) || (f==='term' && x.term && !x.term.none) || (f==='exam' && x.exp) || (f==='late' && smsLog[x.p.id] && reqDays(smsLog[x.p.id])>=7 && (x.unreg || !x.ok || x.exp)) || (f==='unreg' && x.unreg) || (f==='miss' && !x.ok && !x.unreg) || (f==='ok' && x.ok) || (f==='unsent' && x.send.st!=='sent') || (f==='main' && rolesOf(x).indexOf('주강사')>=0) || (f==='sub' && rolesOf(x).indexOf('보조강사')>=0);
+  return f==='all' || (f==='cur' && (x.unreg || inTerm(x.name))) || (f==='term' && x.term && !x.term.none) || (f==='exam' && x.exp) || (f==='late' && smsLog[x.p.id] && reqDays(smsLog[x.p.id])>=7 && (x.unreg || !x.ok || x.exp)) || (f==='unreg' && x.unreg) || (f==='miss' && !x.ok && !x.unreg) || (f==='ok' && x.ok) || (f==='unsent' && x.send.st!=='sent') || (f==='main' && roleKind(x)==='main') || (f==='sub' && roleKind(x)==='sub') || (f==='dual' && roleKind(x)==='dual');
 }
 function rosterSort(list, how){
   return list.sort(function(a,b){
@@ -1530,7 +1534,7 @@ var RS_COLS={ name:function(x){ return x.name||'힣'; }, school:function(x){ ret
   send:function(x){ return ({sent:3, part:2, wait:1, none:0})[x.send.st]; }, upd:function(x){ return x.p.updated||0; } };
 function rsColSort(list){ var f=RS_COLS[rsCol.k]; return list.sort(function(a,b){ var va=f(a), vb=f(b), c=typeof va==='string' ? natSort(va, vb) : va-vb; return (c*rsCol.dir) || natSort(a.name||'힣', b.name||'힣'); }); }
 function rsTh(k, t, w){ var on=rsCol.k===k; return '<th class="sortable'+(on?' on':'')+'" data-rscol="'+k+'"'+(w?' style="width:'+w+'px"':'')+' title="눌러서 정렬">'+t+'<i>'+(on?(rsCol.dir>0?'▲':'▼'):'')+'</i></th>'; }
-var RS_FILTERS=[['all','전체'],['cur','적용 학기 강사'],['miss','미구비'],['ok','구비 완료'],['unreg','미등록'],['|'],['term','학기 반영 필요'],['exam','검사서 기한'],['late','요청 7일 지남'],['|'],['unsent','미발송'],['|'],['main','주강사'],['sub','보조강사']];
+var RS_FILTERS=[['all','전체'],['cur','적용 학기 강사'],['miss','미구비'],['ok','구비 완료'],['unreg','미등록'],['|'],['term','학기 반영 필요'],['exam','검사서 기한'],['late','요청 7일 지남'],['|'],['unsent','미발송'],['|'],['main','주강사'],['sub','보조강사'],['dual','겸임']];
 function rsSelected(){ return people.filter(function(p){ return rsSel[p.id]; }); }
 function rsSelUnreg(){ return unregList().filter(function(x){ return rsSel[x.p.id]; }); }
 function rsSelInfo(){
@@ -1544,8 +1548,8 @@ function rsSelInfo(){
 }
 function renderRoster(){
   var q=$('rsQ').value||'', un=unregList(), all=people.map(rosterInfo).concat(un);
-  var cnt={all:all.length, miss:0, ok:0, unreg:un.length, unsent:0, main:0, sub:0, term:0, exam:0, late:0, cur:0};
-  all.forEach(function(x){ ['term','exam','late','cur'].forEach(function(f){ if(rosterMatch(x, f, '')) cnt[f]++; }); if(!x.unreg) cnt[x.ok?'ok':'miss']++; if(x.send.st!=='sent') cnt.unsent++; var rl=rolesOf(x); if(rl.indexOf('주강사')>=0) cnt.main++; if(rl.indexOf('보조강사')>=0) cnt.sub++; });
+  var cnt={all:all.length, miss:0, ok:0, unreg:un.length, unsent:0, main:0, sub:0, dual:0, term:0, exam:0, late:0, cur:0};
+  all.forEach(function(x){ ['term','exam','late','cur'].forEach(function(f){ if(rosterMatch(x, f, '')) cnt[f]++; }); if(!x.unreg) cnt[x.ok?'ok':'miss']++; if(x.send.st!=='sent') cnt.unsent++; cnt[roleKind(x)]++; });
   $('rsBasis').textContent='등록 '+people.length+'명 · 구비 완료 '+cnt.ok+'명 · 미구비 '+cnt.miss+'명'+(un.length?' · 운영현황에만 있는 미등록 '+un.length+'명':'');
   $('rsFilter').innerHTML=RS_FILTERS.map(function(f){ return f[0]==='|' ? '<span class="sep"></span>' : '<button type="button" data-rf="'+f[0]+'" class="'+(rsF===f[0]?'on':'')+'">'+f[1]+'<b>'+cnt[f[0]]+'</b></button>'; }).join('');
   each('[data-rf]', function(b){ b.onclick=function(){ rsF=b.dataset.rf; renderRoster(); }; }, $('rsFilter'));
@@ -1555,12 +1559,12 @@ function renderRoster(){
   $('rsTable').innerHTML='<tr><th class="ck"><input type="checkbox" id="rsHead" title="보이는 강사 전체 선택"'+(allOn?' checked':'')+'></th>'+rsTh('name','강사',130)+rsTh('school','배치 학교',200)+rsTh('miss','부족 서류',0)+rsTh('send','발송',120)+rsTh('upd','최근 수정',100)+'<th style="width:60px"></th></tr>'+(list.length ? list.map(function(x){
     var p=x.p, lg=smsLog[p.id];
     if(x.unreg) return '<tr class="unreg'+(rsSel[p.id]?' sel':'')+'"><td class="ck"><input type="checkbox" data-rs="'+esc(p.id)+'"'+(rsSel[p.id]?' checked':'')+'></td>'+
-      '<td class="nm"><b>'+esc(x.name)+'</b><small>'+p.role+'</small></td><td>'+esc(x.schools.join(', '))+'</td>'+
+      '<td class="nm"><b>'+esc(x.name)+'</b><small>'+roleLabel(x)+'</small></td><td>'+esc(x.schools.join(', '))+'</td>'+
       '<td>'+missTags(x)+'<small>'+(p.phone?esc(p.phone):'연락처 없음')+'</small>'+(lg ? '<div class="reqd">'+reqText(lg)+'</div>' : '')+'</td>'+
       '<td>'+sendBadge(x.send)+'</td><td></td><td><button type="button" class="ghost sm" data-rsreg="'+esc(x.name)+'">등록</button></td></tr>';
     var miss = x.ok ? '<span class="badge ok">구비 완료</span>' : (x.miss.length||x.fix.length) ? missTags(x) : '<span class="badge err">빨간 항목 확인</span>';
     return '<tr class="'+(rsSel[p.id]?'sel':'')+'"><td class="ck"><input type="checkbox" data-rs="'+esc(p.id)+'"'+(rsSel[p.id]?' checked':'')+'></td>'+
-      '<td class="nm"><b>'+(esc(x.name)||'(이름 없음)')+'</b><small>'+p.role+'</small></td>'+
+      '<td class="nm"><b>'+(esc(x.name)||'(이름 없음)')+'</b><small>'+roleLabel(x)+'</small></td>'+
       '<td>'+(x.schools.length?esc(x.schools.join(', ')):'<span class="hint">없음</span>')+'</td>'+
       '<td>'+miss+termTags(x)+(lg && (!x.ok || x.exp) ? '<div class="reqd">'+reqText(lg)+'</div>' : '')+'</td>'+
       '<td>'+sendBadge(x.send)+'</td><td><small>'+dotDate(p.updated||0)+'</small></td>'+
